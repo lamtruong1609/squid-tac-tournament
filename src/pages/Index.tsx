@@ -3,15 +3,33 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import GameBoard from "@/components/GameBoard";
 import GeometricShapes from "@/components/GeometricShapes";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+const formSchema = z.object({
+  playerName: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }).max(50),
+});
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const { toast } = useToast();
 
-  const startGame = () => {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      playerName: "",
+    },
+  });
+
+  const startGame = (values: z.infer<typeof formSchema>) => {
     setGameStarted(true);
     toast({
-      title: "Game Started",
+      title: `Welcome ${values.playerName}!`,
       description: "May the best player win!",
       className: "bg-primary text-white",
     });
@@ -34,13 +52,35 @@ const Index = () => {
         <p className="text-xl text-muted-foreground mb-8 max-w-md mx-auto">
           Enter the arena and prove your worth in this high-stakes tournament of skill and strategy.
         </p>
-        
-        <Button
-          onClick={startGame}
-          className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 neon-border"
-        >
-          Join Tournament
-        </Button>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(startGame)} className="space-y-6 max-w-sm mx-auto">
+            <FormField
+              control={form.control}
+              name="playerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-lg">Enter Your Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Player Name" 
+                      className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <Button
+              type="submit"
+              className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 neon-border w-full"
+            >
+              Join Tournament
+            </Button>
+          </form>
+        </Form>
       </div>
     </div>
   );
