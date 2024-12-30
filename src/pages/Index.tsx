@@ -8,6 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import WaitingPlayers from "@/components/WaitingPlayers";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -17,6 +18,7 @@ const formSchema = z.object({
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
+  const [waitingPlayers, setWaitingPlayers] = useState<string[]>([]);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -27,12 +29,13 @@ const Index = () => {
   });
 
   const startGame = (values: z.infer<typeof formSchema>) => {
-    setGameStarted(true);
+    setWaitingPlayers([...waitingPlayers, values.playerName]);
     toast({
       title: `Welcome ${values.playerName}!`,
-      description: "May the best player win!",
+      description: "Waiting for more players to join...",
       className: "bg-primary text-white",
     });
+    form.reset();
   };
 
   if (gameStarted) {
@@ -81,6 +84,10 @@ const Index = () => {
             </Button>
           </form>
         </Form>
+
+        {waitingPlayers.length > 0 && (
+          <WaitingPlayers players={waitingPlayers} />
+        )}
       </div>
     </div>
   );
