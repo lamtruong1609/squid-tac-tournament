@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import WaitingPlayers from "@/components/WaitingPlayers";
-import { Telegram, Twitter } from "lucide-react";
+import { MessageCircle, Twitter } from "lucide-react";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -88,7 +88,7 @@ const Index = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-lg flex items-center gap-2">
-                      <Telegram className="w-5 h-5" />
+                      <MessageCircle className="w-5 h-5" />
                       Telegram URL (optional)
                     </FormLabel>
                     <FormControl>
