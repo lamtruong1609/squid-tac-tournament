@@ -9,11 +9,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import WaitingPlayers from "@/components/WaitingPlayers";
+import { Telegram, Twitter } from "lucide-react";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }).max(50),
+  telegramUrl: z.string().url().optional().or(z.literal("")),
+  xUrl: z.string().url().optional().or(z.literal("")),
 });
 
 const Index = () => {
@@ -25,6 +28,8 @@ const Index = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       playerName: "",
+      telegramUrl: "",
+      xUrl: "",
     },
   });
 
@@ -75,6 +80,50 @@ const Index = () => {
                 </FormItem>
               )}
             />
+
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="telegramUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg flex items-center gap-2">
+                      <Telegram className="w-5 h-5" />
+                      Telegram URL (optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="https://t.me/yourusername" 
+                        className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="xUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg flex items-center gap-2">
+                      <Twitter className="w-5 h-5" />
+                      X (Twitter) URL (optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="https://x.com/yourusername" 
+                        className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <Button
               type="submit"
