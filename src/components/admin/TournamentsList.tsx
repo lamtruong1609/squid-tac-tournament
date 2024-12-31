@@ -34,18 +34,47 @@ export const TournamentsList = () => {
 
   const handleCreateTournament = async () => {
     try {
-      const { error } = await supabase
+      // First create the tournament
+      const { data: tournament, error: tournamentError } = await supabase
         .from("tournaments")
         .insert({
           name: `Tournament ${new Date().toLocaleDateString()}`,
           status: "waiting",
           max_players: 100,
           current_players: 0,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (tournamentError) throw tournamentError;
+
+      // Get available players
+      const { data: players, error: playersError } = await supabase
+        .from("players")
+        .select("*")
+        .limit(8); // Limit to 8 players for initial matches
+
+      if (playersError) throw playersError;
+
+      // Create initial matches if we have players
+      if (players && players.length >= 2) {
+        for (let i = 0; i < players.length - 1; i += 2) {
+          await supabase
+            .from("games")
+            .insert({
+              tournament_id: tournament.id,
+              player_x: players[i].id,
+              player_o: players[i + 1].id,
+              board: JSON.stringify(Array(9).fill(null)),
+              next_player: 'X',
+              status: 'waiting'
+            });
+        }
+      }
+
       toast.success("Tournament created successfully");
     } catch (error) {
+      console.error('Tournament creation error:', error);
       toast.error("Failed to create tournament");
     }
   };
