@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { PlayerRegistrationForm } from "@/components/tournament/PlayerRegistrationForm";
 import { ActiveTournaments } from "@/components/tournament/ActiveTournaments";
-import GameBoard from "@/components/GameBoard";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { PlayerTournaments } from "@/components/tournament/PlayerTournaments";
+import { authService } from "@/services/authService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
-  const [currentGame, setCurrentGame] = useState<{
-    gameId: string;
-    playerId: string;
-    board: (string | null)[];
-    isMyTurn: boolean;
-  } | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(authService.isLoggedIn());
+
+  if (isLoggedIn) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <PlayerTournaments />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
@@ -21,21 +27,26 @@ const Index = () => {
           <span className="block text-primary mt-2">Tournament</span>
         </h1>
         
-        {currentGame ? (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Your Game</h2>
-            <GameBoard {...currentGame} />
-          </div>
-        ) : (
-          <>
-            <p className="text-xl text-muted-foreground mb-8">
-              Enter the arena and prove your worth in this high-stakes tournament of skill and strategy.
-            </p>
+        <p className="text-xl text-muted-foreground mb-8">
+          Enter the arena and prove your worth in this high-stakes tournament of skill and strategy.
+        </p>
 
-            <ActiveTournaments />
+        <Tabs defaultValue="login" className="w-full max-w-md mx-auto">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="register">Register</TabsTrigger>
+          </TabsList>
+          <TabsContent value="login">
+            <LoginForm onSuccess={() => setIsLoggedIn(true)} />
+          </TabsContent>
+          <TabsContent value="register">
             <PlayerRegistrationForm />
-          </>
-        )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-8">
+          <ActiveTournaments />
+        </div>
       </div>
     </div>
   );
