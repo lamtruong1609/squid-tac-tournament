@@ -1,4 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import Cookies from 'js-cookie';
+
+const COOKIE_OPTIONS = {
+  expires: 7, // Cookie expires in 7 days
+  secure: true, // Only transmitted over HTTPS
+  sameSite: 'strict' as const
+};
 
 export const authService = {
   async loginPlayer(playerName: string, password: string) {
@@ -12,8 +19,9 @@ export const authService = {
     if (!data) throw new Error('Player not found');
     if (data.password !== password) throw new Error('Invalid password');
 
-    localStorage.setItem('playerId', data.id);
-    localStorage.setItem('playerName', data.name);
+    // Set cookies instead of localStorage
+    Cookies.set('playerId', data.id, COOKIE_OPTIONS);
+    Cookies.set('playerName', data.name, COOKIE_OPTIONS);
     return data;
   },
 
@@ -47,11 +55,11 @@ export const authService = {
   },
 
   isLoggedIn() {
-    return !!localStorage.getItem('playerId');
+    return !!Cookies.get('playerId');
   },
 
   logout() {
-    localStorage.removeItem('playerId');
-    localStorage.removeItem('playerName');
+    Cookies.remove('playerId');
+    Cookies.remove('playerName');
   }
 };

@@ -4,88 +4,38 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, Twitter } from "lucide-react";
 import { toast } from "sonner";
 import { tournamentService } from "@/services/tournamentService";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
-import { generateSquidAvatar } from "@/utils/avatarUtils";
+import Cookies from 'js-cookie';
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
     message: "Name must be at least 2 characters.",
-  }).max(50),
+  }),
   password: z.string().min(6, {
     message: "Password must be at least 6 characters.",
   }),
-  tournamentId: z.string({
-    required_error: "Please select a tournament.",
-  }).uuid({
-    message: "Invalid tournament ID format.",
-  }),
-  telegramUrl: z.string().url().optional().or(z.literal("")),
-  xUrl: z.string().url().optional().or(z.literal("")),
+  tournamentId: z.string().nonempty("Tournament ID is required"),
 });
 
 export const PlayerRegistrationForm = () => {
   const navigate = useNavigate();
-  
-  const { data: tournaments, isLoading: isLoadingTournaments } = useQuery({
-    queryKey: ["available-tournaments"],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("tournaments")
-          .select("*")
-          .eq("status", "waiting")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          toast.error("Failed to load tournaments");
-          throw error;
-        }
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching tournaments:", error);
-        return [];
-      }
-    },
-  });
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       playerName: "",
       password: "",
       tournamentId: "",
-      telegramUrl: "",
-      xUrl: "",
     },
   });
 
-  const startGame = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      if (!values.tournamentId) {
-        toast.error("Please select a tournament");
-        return;
-      }
+      const existingPlayer = await tournamentService.getPlayerByName(values.playerName);
 
-      // Check if player exists
-      const { data: existingPlayer, error: playerError } = await supabase
-        .from('players')
-        .select('id, name, password')
-        .eq('name', values.playerName)
-        .maybeSingle();
-
-      if (playerError) {
-        toast.error("Error checking player existence");
-        throw playerError;
-      }
-
-      if (existingPlayer && existingPlayer.password !== values.password) {
-        toast.error("Incorrect password for existing player");
+      if (existingPlayer) {
+        toast.error("Player already exists. Please log in.");
         return;
       }
 
@@ -97,48 +47,47 @@ export const PlayerRegistrationForm = () => {
         playerName: values.playerName,
         password: values.password,
         tournamentId: values.tournamentId,
-        telegramUrl: values.telegramUrl || null,
-        xUrl: values.xUrl || null,
+        existingPlayerId: existingPlayer?.id,
         avatarUrl,
       });
       
-      // Store player info in localStorage
-      localStorage.setItem('playerId', playerId);
-      localStorage.setItem('playerName', values.playerName);
+      // Store player info in cookies instead of localStorage
+      Cookies.set('playerId', playerId, {
+        expires: 7,
+        secure: true,
+        sameSite: 'strict'
+      });
+      Cookies.set('playerName', values.playerName, {
+        expires: 7,
+        secure: true,
+        sameSite: 'strict'
+      });
       
       toast.success("Tournament Joined", {
         description: `Welcome ${values.playerName}! You've successfully joined the tournament.`,
       });
       
       form.reset();
-      navigate('/'); // Redirect to home page instead of game page
+      navigate('/');
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("Error Joining Tournament", {
-        description: error instanceof Error ? error.message : "Failed to join tournament",
+        description: error instanceof Error ? error.message : "Please try again later",
       });
     }
   };
 
-  if (isLoadingTournaments) {
-    return <div>Loading tournaments...</div>;
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(startGame)} className="space-y-6 max-w-sm mx-auto">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="playerName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg">Enter Your Name</FormLabel>
+              <FormLabel>Player Name</FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="Player Name" 
-                  className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
-                  {...field} 
-                />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -150,14 +99,9 @@ export const PlayerRegistrationForm = () => {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg">Password</FormLabel>
+              <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input 
-                  type="password"
-                  placeholder="Enter password" 
-                  className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
-                  {...field} 
-                />
+                <Input type="password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -169,74 +113,16 @@ export const PlayerRegistrationForm = () => {
           name="tournamentId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg">Select Tournament</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="bg-background/50 backdrop-blur-sm border-primary/50">
-                    <SelectValue placeholder="Select a tournament" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {tournaments?.map((tournament) => (
-                    <SelectItem key={tournament.id} value={tournament.id}>
-                      {tournament.name} ({tournament.current_players}/{tournament.max_players} players)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Tournament ID</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="telegramUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-lg flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
-                  Telegram URL (optional)
-                </FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="https://t.me/yourusername" 
-                    className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="xUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-lg flex items-center gap-2">
-                  <Twitter className="w-5 h-5" />
-                  X (Twitter) URL (optional)
-                </FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="https://x.com/yourusername" 
-                    className="bg-background/50 backdrop-blur-sm border-primary/50 focus:border-primary"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <Button
-          type="submit"
-          className="w-full text-lg px-8 py-6 bg-primary hover:bg-primary/90"
-        >
+        <Button type="submit" className="w-full">
           Join Tournament
         </Button>
       </form>
