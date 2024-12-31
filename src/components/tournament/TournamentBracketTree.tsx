@@ -21,6 +21,10 @@ interface MatchNodeProps {
   level: number;
 }
 
+interface MatchesByRound {
+  [key: number]: Match[];
+}
+
 const MatchNode = ({ match, players, level }: MatchNodeProps) => {
   const getPlayerName = (playerId: string | null) => {
     if (!playerId) return 'Waiting...';
@@ -78,7 +82,7 @@ export const TournamentBracketTree = ({ tournamentId }: { tournamentId: string }
         .order('round', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as Match[];
     },
   });
 
@@ -110,8 +114,8 @@ export const TournamentBracketTree = ({ tournamentId }: { tournamentId: string }
     );
   }
 
-  // Group matches by round
-  const matchesByRound = matches.reduce((acc: { [key: number]: Match[] }, match: Match) => {
+  // Group matches by round with proper typing
+  const matchesByRound = matches.reduce<MatchesByRound>((acc, match) => {
     const round = match.round || 1;
     if (!acc[round]) acc[round] = [];
     acc[round].push(match);
