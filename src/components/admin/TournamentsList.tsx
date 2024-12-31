@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import {
@@ -12,8 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { TournamentBracket } from "../tournament/TournamentBracket";
+import { MatchPairing } from "../tournament/MatchPairing";
 
 export const TournamentsList = () => {
+  const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+
   const { data: tournaments, isLoading } = useQuery({
     queryKey: ["tournaments"],
     queryFn: async () => {
@@ -115,7 +120,11 @@ export const TournamentsList = () => {
           </TableHeader>
           <TableBody>
             {tournaments?.map((tournament) => (
-              <TableRow key={tournament.id}>
+              <TableRow 
+                key={tournament.id}
+                className="cursor-pointer"
+                onClick={() => setSelectedTournament(tournament.id)}
+              >
                 <TableCell className="font-medium">
                   {tournament.name}
                 </TableCell>
@@ -132,7 +141,10 @@ export const TournamentsList = () => {
                   {tournament.status === "waiting" && (
                     <Button
                       size="sm"
-                      onClick={() => handleStartTournament(tournament.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartTournament(tournament.id);
+                      }}
                     >
                       Start
                     </Button>
@@ -141,7 +153,10 @@ export const TournamentsList = () => {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => handleStopTournament(tournament.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStopTournament(tournament.id);
+                      }}
                     >
                       End
                     </Button>
@@ -152,6 +167,19 @@ export const TournamentsList = () => {
           </TableBody>
         </Table>
       </div>
+
+      {selectedTournament && (
+        <div className="space-y-8 mt-8">
+          <div>
+            <h3 className="text-xl font-semibold mb-4">Tournament Bracket</h3>
+            <TournamentBracket tournamentId={selectedTournament} />
+          </div>
+          
+          <div>
+            <MatchPairing tournamentId={selectedTournament} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
