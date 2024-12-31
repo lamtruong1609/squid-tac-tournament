@@ -1,69 +1,76 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { tournamentService } from "@/services/tournamentService";
 
 interface GameBoardProps {
+  gameId: string;
+  playerId: string;
   onGameEnd: () => void;
 }
 
-const GameBoard = ({ onGameEnd }: GameBoardProps) => {
-  const [board, setBoard] = useState(Array(9).fill(null));
-  const [isXNext, setIsXNext] = useState(true);
+const GameBoard = ({ gameId, playerId, onGameEnd }: GameBoardProps) => {
+  const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
+  const [isMyTurn, setIsMyTurn] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const calculateWinner = (squares: (string | null)[]) => {
-    const lines = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-      [0, 4, 8], [2, 4, 6] // Diagonals
-    ];
-
-    for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return { winner: squares[a], line: lines[i] };
+  useEffect(() => {
+    const subscription = tournamentService.subscribeToGame(gameId, (payload) => {
+      const game = payload.new;
+      setBoard(JSON.parse(game.board));
+      setIsMyTurn(
+        (game.next_player === 'X' && game.player_x === playerId) ||
+        (game.next_player === 'O' && game.player_o === playerId)
+      );
+      if (game.winner) {
+        setWinner(game.winner);
+        if (game.winner === 'draw') {
+          toast({
+            title: "Game Over",
+            description: "It's a draw!",
+            className: "bg-muted text-white",
+          });
+        } else {
+          const isWinner = 
+            (game.winner === 'X' && game.player_x === playerId) ||
+            (game.winner === 'O' && game.player_o === playerId);
+          toast({
+            title: isWinner ? "Victory!" : "Defeat!",
+            description: isWinner ? "Congratulations on your win!" : "Better luck next time!",
+            className: isWinner ? "bg-green-600" : "bg-red-600",
+          });
+        }
       }
-    }
-    return null;
-  };
+    });
 
-  const handleClick = (i: number) => {
-    if (board[i] || winner) return;
+    return () => {
+      subscription.then(sub => sub.unsubscribe());
+    };
+  }, [gameId, playerId]);
 
-    const newBoard = board.slice();
-    newBoard[i] = isXNext ? "X" : "O";
-    setBoard(newBoard);
-    setIsXNext(!isXNext);
+  const handleClick = async (position: number) => {
+    if (!isMyTurn || board[position] || winner) return;
 
-    const result = calculateWinner(newBoard);
-    if (result) {
-      setWinner(result.winner);
+    try {
+      await tournamentService.makeMove(gameId, playerId, position);
+    } catch (error) {
       toast({
-        title: `Winner: Player ${result.winner}`,
-        description: "Congratulations on your victory!",
-        className: "bg-accent text-white",
-      });
-    } else if (!newBoard.includes(null)) {
-      setWinner("draw");
-      toast({
-        title: "Game Over",
-        description: "It's a draw!",
-        className: "bg-muted text-white",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to make move",
+        variant: "destructive",
       });
     }
   };
 
-  const renderCell = (i: number) => {
-    const winResult = calculateWinner(board);
-    const isWinningCell = winResult?.line?.includes(i);
-
+  const renderCell = (position: number) => {
     return (
       <div
-        className={`game-cell ${isWinningCell ? "winner" : ""}`}
-        onClick={() => handleClick(i)}
+        key={position}
+        className={`game-cell ${isMyTurn && !board[position] ? 'cursor-pointer hover:bg-primary/10' : ''}`}
+        onClick={() => handleClick(position)}
       >
-        {board[i]}
+        {board[position]}
       </div>
     );
   };
@@ -76,7 +83,9 @@ const GameBoard = ({ onGameEnd }: GameBoardProps) => {
             ? winner === "draw" 
               ? "Game Over - It's a Draw!" 
               : `Player ${winner} Wins!`
-            : `Current Player: ${isXNext ? "X" : "O"}`}
+            : isMyTurn 
+              ? "Your Turn" 
+              : "Opponent's Turn"}
         </h2>
       </div>
 
