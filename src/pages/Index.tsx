@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import WaitingPlayers from "@/components/WaitingPlayers";
 import { MessageCircle, Twitter } from "lucide-react";
+import { tournamentService } from "@/services/tournamentService";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -20,7 +21,10 @@ const formSchema = z.object({
 });
 
 const Index = () => {
-  const [gameStarted, setGameStarted] = useState(false);
+  const [gameState, setGameState] = useState<{
+    gameId: string;
+    playerId: string;
+  } | null>(null);
   const [waitingPlayers, setWaitingPlayers] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -33,18 +37,41 @@ const Index = () => {
     },
   });
 
-  const startGame = (values: z.infer<typeof formSchema>) => {
-    setWaitingPlayers([...waitingPlayers, values.playerName]);
-    toast({
-      title: `Welcome ${values.playerName}!`,
-      description: "Waiting for more players to join...",
-      className: "bg-primary text-white",
-    });
-    form.reset();
+  const startGame = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const { gameId, playerId } = await tournamentService.joinTournament({
+        playerName: values.playerName,
+        telegramUrl: values.telegramUrl || null,
+        xUrl: values.xUrl || null,
+      });
+
+      setGameState({ gameId, playerId });
+      setWaitingPlayers([...waitingPlayers, values.playerName]);
+      
+      toast({
+        title: `Welcome ${values.playerName}!`,
+        description: "Waiting for more players to join...",
+        className: "bg-primary text-white",
+      });
+      
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to join tournament",
+        variant: "destructive",
+      });
+    }
   };
 
-  if (gameStarted) {
-    return <GameBoard onGameEnd={() => setGameStarted(false)} />;
+  if (gameState) {
+    return (
+      <GameBoard 
+        gameId={gameState.gameId}
+        playerId={gameState.playerId}
+        onGameEnd={() => setGameState(null)}
+      />
+    );
   }
 
   return (
