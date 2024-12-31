@@ -45,7 +45,6 @@ const Game = () => {
   });
 
   useEffect(() => {
-    // Subscribe to real-time game updates
     if (gameId) {
       const subscription = supabase
         .channel(`game:${gameId}`)
@@ -69,7 +68,6 @@ const Game = () => {
     }
   }, [gameId]);
 
-  // Try to get the current player ID from localStorage
   useEffect(() => {
     const storedPlayerId = localStorage.getItem('playerId');
     if (storedPlayerId) {
@@ -95,16 +93,24 @@ const Game = () => {
     );
   }
 
-  if (game.status === 'waiting') {
-    const playerNames = players?.map(p => p.name) || [];
-    if (game.player_x && !playerNames.length) {
-      playerNames.push('Loading player...');
-    }
+  const bothPlayersReady = game.player_x_ready && game.player_o_ready;
+  const gameCanStart = game.status === 'waiting' && bothPlayersReady;
+
+  if (game.status === 'waiting' || !gameCanStart) {
+    const playersList = players?.map(p => ({
+      id: p.id,
+      name: p.name,
+      isReady: p.id === game.player_x ? game.player_x_ready : game.player_o_ready
+    })) || [];
     
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-4xl font-bold mb-8">Waiting for Players</h1>
-        <WaitingPlayers players={playerNames} />
+        <WaitingPlayers 
+          players={playersList}
+          gameId={game.id}
+          currentPlayerId={currentPlayerId || ''}
+        />
       </div>
     );
   }
