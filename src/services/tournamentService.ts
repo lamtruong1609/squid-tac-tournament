@@ -5,71 +5,95 @@ type Tournament = Database['public']['Tables']['tournaments']['Row']
 type Game = Database['public']['Tables']['games']['Row']
 type Player = Database['public']['Tables']['players']['Row']
 
+interface JoinTournamentParams {
+  playerName: string;
+  telegramUrl: string | null;
+  xUrl: string | null;
+}
+
 export const tournamentService = {
-  async createTournament(name: string, maxPlayers: number = 8) {
-    const { data, error } = await supabase
-      .from('tournaments')
+  async joinTournament({ playerName, telegramUrl, xUrl }: JoinTournamentParams) {
+    // Create player
+    const { data: player, error: playerError } = await supabase
+      .from('players')
       .insert({
-        name,
-        max_players: maxPlayers,
-        current_players: 0,
-        status: 'waiting'
+        name: playerName,
+        telegram_url: telegramUrl,
+        x_url: xUrl,
+        wins: 0,
+        losses: 0,
+        draws: 0
       })
       .select()
-      .single()
+      .single();
 
-    if (error) throw error
-    return data
-  },
+    if (playerError) throw playerError;
 
-  async joinTournament(tournamentId: string, player: Player) {
+    // Find or create tournament
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .select()
-      .eq('id', tournamentId)
+      .eq('status', 'waiting')
+      .limit(1)
       .single()
-
-    if (tournamentError) throw tournamentError
-
-    if (tournament.current_players >= tournament.max_players) {
-      throw new Error('Tournament is full')
-    }
-
-    const { error: updateError } = await supabase
-      .from('tournaments')
-      .update({ current_players: tournament.current_players + 1 })
-      .eq('id', tournamentId)
-
-    if (updateError) throw updateError
-
-    // Create a new game if we have an even number of players
-    if ((tournament.current_players + 1) % 2 === 0) {
-      const { data: waitingGame } = await supabase
-        .from('games')
-        .select()
-        .eq('tournament_id', tournamentId)
-        .eq('status', 'waiting')
-        .single()
-
-      if (waitingGame) {
-        await supabase
-          .from('games')
-          .update({
-            player_o: player.id,
-            status: 'in_progress'
-          })
-          .eq('id', waitingGame.id)
-      } else {
-        await supabase
-          .from('games')
+      .catch(async () => {
+        // If no waiting tournament exists, create one
+        return await supabase
+          .from('tournaments')
           .insert({
-            tournament_id: tournamentId,
-            player_x: player.id,
-            board: JSON.stringify(Array(9).fill(null)),
+            name: 'Tournament ' + new Date().toLocaleDateString(),
+            max_players: 8,
+            current_players: 0,
             status: 'waiting'
           })
-      }
+          .select()
+          .single();
+      });
+
+    if (tournamentError) throw tournamentError;
+
+    // Create or join game
+    const { data: game, error: gameError } = await supabase
+      .from('games')
+      .select()
+      .eq('tournament_id', tournament.id)
+      .eq('status', 'waiting')
+      .limit(1)
+      .single()
+      .catch(async () => {
+        // If no waiting game exists, create one
+        return await supabase
+          .from('games')
+          .insert({
+            tournament_id: tournament.id,
+            player_x: player.id,
+            board: JSON.stringify(Array(9).fill(null)),
+            next_player: 'X',
+            status: 'waiting'
+          })
+          .select()
+          .single();
+      });
+
+    if (gameError) throw gameError;
+
+    // If game already exists and needs player O
+    if (game.status === 'waiting' && !game.player_o) {
+      const { error: updateError } = await supabase
+        .from('games')
+        .update({
+          player_o: player.id,
+          status: 'in_progress'
+        })
+        .eq('id', game.id);
+
+      if (updateError) throw updateError;
     }
+
+    return {
+      gameId: game.id,
+      playerId: player.id
+    };
   },
 
   async makeMove(gameId: string, playerId: string, position: number) {
@@ -77,34 +101,34 @@ export const tournamentService = {
       .from('games')
       .select()
       .eq('id', gameId)
-      .single()
+      .single();
 
-    if (gameError) throw gameError
+    if (gameError) throw gameError;
 
     if (game.status !== 'in_progress') {
-      throw new Error('Game is not in progress')
+      throw new Error('Game is not in progress');
     }
 
-    const board = JSON.parse(game.board)
+    const board = JSON.parse(game.board);
     if (board[position] !== null) {
-      throw new Error('Invalid move')
+      throw new Error('Invalid move');
     }
 
-    const isPlayerX = game.player_x === playerId
-    const isPlayerO = game.player_o === playerId
+    const isPlayerX = game.player_x === playerId;
+    const isPlayerO = game.player_o === playerId;
 
     if (!isPlayerX && !isPlayerO) {
-      throw new Error('Not a player in this game')
+      throw new Error('Not a player in this game');
     }
 
     if ((game.next_player === 'X' && !isPlayerX) || 
         (game.next_player === 'O' && !isPlayerO)) {
-      throw new Error('Not your turn')
+      throw new Error('Not your turn');
     }
 
-    board[position] = game.next_player
-    const winner = this.calculateWinner(board)
-    const isDraw = !winner && board.every((cell: string | null) => cell !== null)
+    board[position] = game.next_player;
+    const winner = this.calculateWinner(board);
+    const isDraw = !winner && board.every((cell: string | null) => cell !== null);
 
     await supabase
       .from('games')
@@ -114,7 +138,7 @@ export const tournamentService = {
         winner: winner || (isDraw ? 'draw' : null),
         status: (winner || isDraw) ? 'completed' : 'in_progress'
       })
-      .eq('id', gameId)
+      .eq('id', gameId);
   },
 
   calculateWinner(board: (string | null)[]) {
@@ -122,14 +146,14 @@ export const tournamentService = {
       [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
       [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
       [0, 4, 8], [2, 4, 6] // Diagonals
-    ]
+    ];
 
     for (const [a, b, c] of lines) {
       if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a]
+        return board[a];
       }
     }
-    return null
+    return null;
   },
 
   async subscribeToGame(gameId: string, callback: (payload: any) => void) {
@@ -145,6 +169,6 @@ export const tournamentService = {
         },
         callback
       )
-      .subscribe()
+      .subscribe();
   }
-}
+};
