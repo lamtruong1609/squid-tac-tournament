@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import { User, Trophy, Users, Calendar } from "lucide-react";
+import { Trophy, Users, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { generateSquidAvatar } from "@/utils/avatarUtils";
 
 interface Match {
   id: string;
@@ -26,20 +28,32 @@ const MatchCard = ({ match, players }: MatchProps) => {
     return player?.name || 'Unknown Player';
   };
 
+  const getPlayerAvatar = (playerId: string | null) => {
+    if (!playerId) return null;
+    const player = players.find(p => p.id === playerId);
+    return player?.avatar_url || generateSquidAvatar();
+  };
+
   return (
     <Link to={`/game/${match.id}`} className="block">
       <div className="border rounded-lg p-4 bg-background shadow-sm hover:border-primary/50 transition-colors">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className={`flex items-center gap-2 ${match.winner === match.player_x ? 'text-green-500 font-bold' : ''}`}>
-              <User className="h-4 w-4" />
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={getPlayerAvatar(match.player_x)} alt={getPlayerName(match.player_x)} />
+                <AvatarFallback>?</AvatarFallback>
+              </Avatar>
               {getPlayerName(match.player_x)}
             </span>
             {match.winner === match.player_x && <Trophy className="h-4 w-4 text-green-500" />}
           </div>
           <div className="flex items-center justify-between">
             <span className={`flex items-center gap-2 ${match.winner === match.player_o ? 'text-green-500 font-bold' : ''}`}>
-              <User className="h-4 w-4" />
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={getPlayerAvatar(match.player_o)} alt={getPlayerName(match.player_o)} />
+                <AvatarFallback>?</AvatarFallback>
+              </Avatar>
               {getPlayerName(match.player_o)}
             </span>
             {match.winner === match.player_o && <Trophy className="h-4 w-4 text-green-500" />}
