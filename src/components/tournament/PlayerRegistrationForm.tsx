@@ -11,6 +11,7 @@ import { tournamentService } from "@/services/tournamentService";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
+import { generateSquidAvatar } from "@/utils/avatarUtils";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -59,12 +60,11 @@ export const PlayerRegistrationForm = () => {
       // Check if player exists
       const { data: existingPlayer } = await supabase
         .from('players')
-        .select('id, name, password')
+        .select('id, name, password, avatar_url')
         .eq('name', values.playerName)
         .single();
 
       if (existingPlayer) {
-        // Verify password for existing player
         if (existingPlayer.password !== values.password) {
           toast.error("Incorrect password for existing player");
           return;
@@ -87,6 +87,9 @@ export const PlayerRegistrationForm = () => {
         }
       }
 
+      // Generate Squid Game avatar for new players
+      const avatarUrl = existingPlayer?.avatar_url || generateSquidAvatar();
+
       // Join tournament with selected ID
       const { gameId, playerId } = await tournamentService.joinTournament({
         playerName: values.playerName,
@@ -94,6 +97,7 @@ export const PlayerRegistrationForm = () => {
         tournamentId: values.tournamentId,
         telegramUrl: values.telegramUrl || null,
         xUrl: values.xUrl || null,
+        avatarUrl,
       });
       
       toast.success("Tournament Joined", {

@@ -11,10 +11,18 @@ interface JoinTournamentParams {
   tournamentId: string;
   telegramUrl: string | null;
   xUrl: string | null;
+  avatarUrl: string;
 }
 
 export const tournamentService = {
-  async joinTournament({ playerName, password, tournamentId, telegramUrl, xUrl }: JoinTournamentParams) {
+  async joinTournament({ 
+    playerName, 
+    password, 
+    tournamentId, 
+    telegramUrl, 
+    xUrl,
+    avatarUrl 
+  }: JoinTournamentParams) {
     // Create or update player
     const { data: existingPlayer } = await supabase
       .from('players')
@@ -29,6 +37,16 @@ export const tournamentService = {
         throw new Error('Incorrect password');
       }
       playerId = existingPlayer.id;
+      
+      // Update existing player's avatar and social links
+      await supabase
+        .from('players')
+        .update({
+          telegram_url: telegramUrl,
+          x_url: xUrl,
+          avatar_url: avatarUrl
+        })
+        .eq('id', playerId);
     } else {
       const { data: newPlayer, error: playerError } = await supabase
         .from('players')
@@ -37,6 +55,7 @@ export const tournamentService = {
           password: password,
           telegram_url: telegramUrl,
           x_url: xUrl,
+          avatar_url: avatarUrl,
           wins: 0,
           losses: 0,
           draws: 0
