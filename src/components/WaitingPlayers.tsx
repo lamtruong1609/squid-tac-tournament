@@ -32,7 +32,6 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
         async (payload) => {
           const newData = payload.new as any;
           if (newData.player_x_ready && newData.player_o_ready) {
-            // Update game status to in_progress when both players are ready
             const { error: updateError } = await supabase
               .from('games')
               .update({ status: 'in_progress' })
@@ -55,16 +54,15 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
   }, [gameId, toast]);
 
   const handleReadyStatus = async () => {
-    try {
-      const isPlayerX = currentPlayerId === players[0]?.id;
-      const updateField = isPlayerX ? 'player_x_ready' : 'player_o_ready';
+    const isPlayerX = currentPlayerId === players[0]?.id;
+    const updateField = isPlayerX ? 'player_x_ready' : 'player_o_ready';
 
+    try {
       const { error } = await supabase
         .from('games')
-        .update({
-          [updateField]: !isReady
-        })
-        .eq('id', gameId);
+        .update({ [updateField]: !isReady })
+        .eq('id', gameId)
+        .select();
 
       if (error) throw error;
 
