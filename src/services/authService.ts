@@ -34,6 +34,29 @@ export const authService = {
     return data;
   },
 
+  async loginWithWallet(address: string) {
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('name', address)
+      .single();
+
+    if (error) throw error;
+    if (!data) throw new Error('Player not found');
+
+    const token = jwt.sign(
+      { 
+        playerId: data.id, 
+        playerName: data.name 
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    Cookies.set('auth_token', token, COOKIE_OPTIONS);
+    return data;
+  },
+
   async getPlayerInfo(playerId: string) {
     const { data, error } = await supabase
       .from('players')
