@@ -17,10 +17,14 @@ export const PlayersList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("players")
-        .select("*")
+        .select("id, name, wins, losses, draws")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching players:", error);
+        toast.error("Failed to load players");
+        throw error;
+      }
       return data;
     },
   });
@@ -35,6 +39,7 @@ export const PlayersList = () => {
       if (error) throw error;
       toast.success("Player deleted successfully");
     } catch (error) {
+      console.error("Error deleting player:", error);
       toast.error("Failed to delete player");
     }
   };

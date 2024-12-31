@@ -39,7 +39,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
       .or(`player_x.eq.${playerId},player_o.eq.${playerId}`)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (lastGame && lastGame.winner && lastGame.winner !== playerId && lastGame.winner !== 'draw') {
       navigate('/loser');
@@ -50,15 +50,32 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     try {
-      const player = await authService.loginPlayer(values.playerName, values.password);
+      const { data: player, error } = await supabase
+        .from('players')
+        .select('id, name, password')
+        .eq('name', values.playerName)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (!player) {
+        toast.error("Player not found");
+        return;
+      }
+
+      if (player.password !== values.password) {
+        toast.error("Invalid password");
+        return;
+      }
+
       toast.success("Login successful!");
       
-      // Check if player lost their last game
       const isLoser = await checkLastGameResult(player.id);
       if (!isLoser) {
         onSuccess();
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast.error("Login failed", {
         description: error instanceof Error ? error.message : "Invalid credentials",
       });
