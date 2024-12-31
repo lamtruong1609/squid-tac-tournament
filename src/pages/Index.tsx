@@ -8,9 +8,19 @@ import { authService } from "@/services/authService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Twitter } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isLoggedIn());
+  const { toast } = useToast();
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      description: "Copied to clipboard!",
+      duration: 2000,
+    });
+  };
 
   if (isLoggedIn) {
     return (
@@ -88,7 +98,14 @@ const Index = () => {
 
       <footer className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-sm border-t border-primary/20 z-20">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground">
-          <div>CA: Coming Soon</div>
+          <div>
+            CA: <button 
+              onClick={() => copyToClipboard("Coming Soon")}
+              className="hover:text-primary transition-colors"
+            >
+              Coming Soon
+            </button>
+          </div>
           <Separator orientation="vertical" className="hidden sm:block h-4" />
           <a 
             href="https://x.com/SquidGame2AIBOT" 
