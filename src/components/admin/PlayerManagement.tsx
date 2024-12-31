@@ -24,10 +24,14 @@ export const PlayerManagement = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("players")
-        .select("*")
+        .select("id, name, wins, losses, draws, telegram_url, x_url")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching players:", error);
+        toast.error("Failed to load players");
+        throw error;
+      }
       return data;
     },
   });
@@ -56,7 +60,10 @@ export const PlayerManagement = () => {
         .delete()
         .or(`player_x.eq.${id},player_o.eq.${id}`);
 
-      if (gamesError) throw gamesError;
+      if (gamesError) {
+        console.error("Error deleting games:", gamesError);
+        throw gamesError;
+      }
 
       // Then delete the player
       const { error: playerError } = await supabase
@@ -64,12 +71,15 @@ export const PlayerManagement = () => {
         .delete()
         .eq("id", id);
 
-      if (playerError) throw playerError;
+      if (playerError) {
+        console.error("Error deleting player:", playerError);
+        throw playerError;
+      }
 
       toast.success("Player deleted successfully");
-      await refetch(); // Immediately refetch the data
+      await refetch();
       queryClient.invalidateQueries({ queryKey: ["players"] });
-      queryClient.invalidateQueries({ queryKey: ["tournaments"] }); // Also refresh tournaments
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
     } catch (error) {
       console.error('Error deleting player:', error);
       toast.error("Failed to delete player");
