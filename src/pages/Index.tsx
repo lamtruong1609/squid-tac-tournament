@@ -7,6 +7,7 @@ import { PlayerTournaments } from "@/components/tournament/PlayerTournaments";
 import { authService } from "@/services/authService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Twitter, Telegram } from "lucide-react";
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isLoggedIn());
@@ -84,6 +85,30 @@ const Index = () => {
           />
         </div>
       </div>
+
+      <footer className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-sm border-t border-primary/20 z-20">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground">
+          <div>CA: Coming Soon</div>
+          <Separator orientation="vertical" className="hidden sm:block h-4" />
+          <a 
+            href="https://x.com/SquidGame2AIBOT" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-primary transition-colors"
+          >
+            <Twitter size={16} /> X: @SquidGame2AIBOT
+          </a>
+          <Separator orientation="vertical" className="hidden sm:block h-4" />
+          <a 
+            href="https://t.me/Squid_Game2AI" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-primary transition-colors"
+          >
+            <Telegram size={16} /> Telegram: Squid_Game2AI
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };
