@@ -6,16 +6,12 @@ import WaitingPlayers from '@/components/WaitingPlayers';
 const Game = () => {
   const { gameId } = useParams();
 
-  const { data: game, isLoading } = useQuery({
+  const { data: game, isLoading: gameLoading } = useQuery({
     queryKey: ['game', gameId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('games')
-        .select(`
-          *,
-          player_x_details:players!player_x(name, telegram_url, x_url),
-          player_o_details:players!player_o(name, telegram_url, x_url)
-        `)
+        .select('*')
         .eq('id', gameId)
         .single();
 
@@ -26,6 +22,26 @@ const Game = () => {
       return data;
     },
   });
+
+  const { data: players, isLoading: playersLoading } = useQuery({
+    queryKey: ['players', game?.player_x, game?.player_o],
+    enabled: !!game,
+    queryFn: async () => {
+      const playerIds = [game.player_x, game.player_o].filter(Boolean);
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .in('id', playerIds);
+
+      if (error) {
+        console.error('Error fetching players:', error);
+        throw error;
+      }
+      return data;
+    },
+  });
+
+  const isLoading = gameLoading || playersLoading;
 
   if (isLoading) {
     return (
@@ -44,15 +60,15 @@ const Game = () => {
   }
 
   if (game.status === 'waiting') {
-    const players = [game.player_x_details.name];
-    if (game.player_o_details?.name) {
-      players.push(game.player_o_details.name);
+    const playerNames = players?.map(p => p.name) || [];
+    if (game.player_x && !playerNames.length) {
+      playerNames.push('Loading player...');
     }
     
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-4xl font-bold mb-8">Waiting for Players</h1>
-        <WaitingPlayers players={players} />
+        <WaitingPlayers players={playerNames} />
       </div>
     );
   }
