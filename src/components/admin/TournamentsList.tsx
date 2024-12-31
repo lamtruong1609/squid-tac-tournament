@@ -15,11 +15,13 @@ import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { TournamentBracket } from "../tournament/TournamentBracket";
 import { MatchPairing } from "../tournament/MatchPairing";
+import { TournamentActions } from "./TournamentActions";
+import { tournamentManagementService } from "@/services/tournamentManagementService";
 
 export const TournamentsList = () => {
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
 
-  const { data: tournaments, isLoading } = useQuery({
+  const { data: tournaments, isLoading, refetch } = useQuery({
     queryKey: ["tournaments"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -34,76 +36,15 @@ export const TournamentsList = () => {
 
   const handleCreateTournament = async () => {
     try {
-      // First create the tournament
-      const { data: tournament, error: tournamentError } = await supabase
-        .from("tournaments")
-        .insert({
-          name: `Tournament ${new Date().toLocaleDateString()}`,
-          status: "waiting",
-          max_players: 100,
-          current_players: 0,
-        })
-        .select()
-        .single();
-
-      if (tournamentError) throw tournamentError;
-
-      // Get available players
-      const { data: players, error: playersError } = await supabase
-        .from("players")
-        .select("*")
-        .limit(8); // Limit to 8 players for initial matches
-
-      if (playersError) throw playersError;
-
-      // Create initial matches if we have players
-      if (players && players.length >= 2) {
-        for (let i = 0; i < players.length - 1; i += 2) {
-          await supabase
-            .from("games")
-            .insert({
-              tournament_id: tournament.id,
-              player_x: players[i].id,
-              player_o: players[i + 1].id,
-              board: JSON.stringify(Array(9).fill(null)),
-              next_player: 'X',
-              status: 'waiting'
-            });
-        }
-      }
-
+      const tournament = await tournamentManagementService.createTournament();
+      const players = await tournamentManagementService.getAvailablePlayers();
+      await tournamentManagementService.createInitialMatches(tournament, players);
+      
       toast.success("Tournament created successfully");
+      refetch();
     } catch (error) {
       console.error('Tournament creation error:', error);
       toast.error("Failed to create tournament");
-    }
-  };
-
-  const handleStartTournament = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("tournaments")
-        .update({ status: "in_progress" })
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success("Tournament started successfully");
-    } catch (error) {
-      toast.error("Failed to start tournament");
-    }
-  };
-
-  const handleStopTournament = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("tournaments")
-        .update({ status: "completed" })
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success("Tournament completed successfully");
-    } catch (error) {
-      toast.error("Failed to complete tournament");
     }
   };
 
@@ -166,30 +107,11 @@ export const TournamentsList = () => {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="space-x-2">
-                  {tournament.status === "waiting" && (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartTournament(tournament.id);
-                      }}
-                    >
-                      Start
-                    </Button>
-                  )}
-                  {tournament.status === "in_progress" && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStopTournament(tournament.id);
-                      }}
-                    >
-                      End
-                    </Button>
-                  )}
+                <TableCell>
+                  <TournamentActions 
+                    tournament={tournament} 
+                    onAction={refetch}
+                  />
                 </TableCell>
               </TableRow>
             ))}
