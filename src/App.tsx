@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Game from "./pages/Game";
+import WinnerPage from "./pages/WinnerPage";
+import LoserPage from "./pages/LoserPage";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +23,8 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/game/:gameId" element={<Game />} />
+          <Route path="/winner" element={<WinnerPage />} />
+          <Route path="/loser" element={<LoserPage />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

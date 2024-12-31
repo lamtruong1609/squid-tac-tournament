@@ -80,9 +80,9 @@ const Game = () => {
       if (game.winner === 'draw') {
         toast({
           title: "It's a Draw!",
-          description: "Both players played well!",
+          description: "Good game!",
         });
-        setTimeout(() => navigate('/'), 3000);
+        navigate('/');
       } else if (game.winner === currentPlayerId) {
         navigate('/winner');
       } else {
