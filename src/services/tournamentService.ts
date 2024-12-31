@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/supabase-types'
-import { toast } from "sonner"
+import { calculateWinner } from './gameLogic'
+import { updatePlayerStats } from './playerStats'
 
 type Tournament = Database['public']['Tables']['tournaments']['Row']
 type Game = Database['public']['Tables']['games']['Row']
@@ -147,7 +148,7 @@ export const tournamentService = {
     }
 
     board[position] = game.next_player;
-    const winner = this.calculateWinner(board);
+    const winner = calculateWinner(board);
     const isDraw = !winner && board.every((cell: string | null) => cell !== null);
 
     // Update game status
@@ -165,65 +166,12 @@ export const tournamentService = {
 
     // If game is completed, update player stats
     if (winner || isDraw) {
-      await this.updatePlayerStats(
+      await updatePlayerStats(
         game.player_x,
         game.player_o,
         winner ? (isPlayerX ? 'win' : 'loss') : 'draw'
       );
     }
-  },
-
-  async updatePlayerStats(playerXId: string, playerOId: string | null, result: 'win' | 'loss' | 'draw') {
-    if (!playerOId) return; // Can't update stats if there's no opponent
-
-    // Update player X stats
-    const { error: errorX } = await supabase
-      .from('players')
-      .update({
-        wins: result === 'win' ? supabase.sql`wins + 1` : supabase.sql`wins`,
-        losses: result === 'loss' ? supabase.sql`losses + 1` : supabase.sql`losses`,
-        draws: result === 'draw' ? supabase.sql`draws + 1` : supabase.sql`draws`
-      })
-      .eq('id', playerXId);
-
-    if (errorX) {
-      console.error('Error updating player X stats:', errorX);
-      toast.error('Failed to update player X statistics');
-      return;
-    }
-
-    // Update player O stats
-    const { error: errorO } = await supabase
-      .from('players')
-      .update({
-        wins: result === 'loss' ? supabase.sql`wins + 1` : supabase.sql`wins`,
-        losses: result === 'win' ? supabase.sql`losses + 1` : supabase.sql`losses`,
-        draws: result === 'draw' ? supabase.sql`draws + 1` : supabase.sql`draws`
-      })
-      .eq('id', playerOId);
-
-    if (errorO) {
-      console.error('Error updating player O stats:', errorO);
-      toast.error('Failed to update player O statistics');
-      return;
-    }
-
-    toast.success('Player statistics updated successfully');
-  },
-
-  calculateWinner(board: (string | null)[]) {
-    const lines = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-      [0, 4, 8], [2, 4, 6] // Diagonals
-    ];
-
-    for (const [a, b, c] of lines) {
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a];
-      }
-    }
-    return null;
   },
 
   async subscribeToGame(gameId: string, callback: (payload: any) => void) {
