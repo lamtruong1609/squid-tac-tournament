@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { generateSquidAvatar } from "@/utils/avatarUtils";
+import { toast } from "sonner";
 
 interface Match {
   id: string;
@@ -80,9 +81,13 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
         .from("tournaments")
         .select("*")
         .eq("id", tournamentId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle missing data
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching tournament:", error);
+        toast.error("Failed to load tournament information");
+        return null;
+      }
       return data;
     },
   });
@@ -98,6 +103,7 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
 
       if (error) {
         console.error("Error fetching matches:", error);
+        toast.error("Failed to load matches");
         throw error;
       }
       console.log("Fetched matches:", data);
@@ -114,6 +120,7 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
 
       if (error) {
         console.error("Error fetching players:", error);
+        toast.error("Failed to load player information");
         throw error;
       }
       return data;
