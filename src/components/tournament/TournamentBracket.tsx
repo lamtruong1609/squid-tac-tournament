@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import { User, Trophy } from "lucide-react";
+import { User, Trophy, Users, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
 
 interface Match {
   id: string;
@@ -58,6 +59,20 @@ const MatchCard = ({ match, players }: MatchProps) => {
 };
 
 export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) => {
+  const { data: tournament, isLoading: loadingTournament } = useQuery({
+    queryKey: ["tournament", tournamentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tournaments")
+        .select("*")
+        .eq("id", tournamentId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ["tournament-matches", tournamentId],
     queryFn: async () => {
@@ -91,7 +106,7 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
     },
   });
 
-  if (loadingMatches || loadingPlayers) {
+  if (loadingMatches || loadingPlayers || loadingTournament) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-lg text-muted-foreground">Loading tournament bracket...</div>
@@ -108,11 +123,45 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
   }
 
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {matches.map((match) => (
-          <MatchCard key={match.id} match={match} players={players || []} />
-        ))}
+    <div className="space-y-6">
+      {tournament && (
+        <div className="bg-black/30 rounded-lg p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-accent">{tournament.name}</h2>
+            <Badge 
+              variant={tournament.status === 'completed' ? 'default' : 
+                      tournament.status === 'in_progress' ? 'secondary' : 'outline'}
+            >
+              {tournament.status === 'completed' ? 'Completed' : 
+               tournament.status === 'in_progress' ? 'In Progress' : 'Waiting'}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>Players: {tournament.current_players}/{tournament.max_players}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>Created: {format(new Date(tournament.created_at), 'MMM d, yyyy')}</span>
+            </div>
+            {tournament.winner && (
+              <div className="flex items-center gap-2 text-accent">
+                <Trophy className="h-4 w-4" />
+                <span>Winner: {players?.find(p => p.id === tournament.winner)?.name || 'Unknown'}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {matches.map((match) => (
+            <MatchCard key={match.id} match={match} players={players || []} />
+          ))}
+        </div>
       </div>
     </div>
   );
