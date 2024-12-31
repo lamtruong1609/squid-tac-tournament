@@ -22,6 +22,8 @@ const formSchema = z.object({
   }),
   tournamentId: z.string({
     required_error: "Please select a tournament.",
+  }).uuid({
+    message: "Invalid tournament ID format.",
   }),
   telegramUrl: z.string().url().optional().or(z.literal("")),
   xUrl: z.string().url().optional().or(z.literal("")),
@@ -30,17 +32,25 @@ const formSchema = z.object({
 export const PlayerRegistrationForm = () => {
   const navigate = useNavigate();
   
-  const { data: tournaments } = useQuery({
+  const { data: tournaments, isLoading: isLoadingTournaments } = useQuery({
     queryKey: ["available-tournaments"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tournaments")
-        .select("*")
-        .eq("status", "waiting")
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("tournaments")
+          .select("*")
+          .eq("status", "waiting")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+        if (error) {
+          toast.error("Failed to load tournaments");
+          throw error;
+        }
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching tournaments:", error);
+        return [];
+      }
     },
   });
 
@@ -57,26 +67,41 @@ export const PlayerRegistrationForm = () => {
 
   const startGame = async (values: z.infer<typeof formSchema>) => {
     try {
+      if (!values.tournamentId) {
+        toast.error("Please select a tournament");
+        return;
+      }
+
       // Check if player exists
-      const { data: existingPlayer } = await supabase
+      const { data: existingPlayer, error: playerError } = await supabase
         .from('players')
-        .select('id, name, password, avatar_url')
+        .select('id, name, password')
         .eq('name', values.playerName)
-        .single();
+        .maybeSingle();
 
+      if (playerError) {
+        toast.error("Error checking player existence");
+        throw playerError;
+      }
+
+      if (existingPlayer && existingPlayer.password !== values.password) {
+        toast.error("Incorrect password for existing player");
+        return;
+      }
+
+      // Check for active game if player exists
       if (existingPlayer) {
-        if (existingPlayer.password !== values.password) {
-          toast.error("Incorrect password for existing player");
-          return;
-        }
-
-        // Check for active game
-        const { data: activeGame } = await supabase
+        const { data: activeGame, error: gameError } = await supabase
           .from('games')
           .select('*')
           .or(`player_x.eq.${existingPlayer.id},player_o.eq.${existingPlayer.id}`)
           .eq('status', 'waiting')
-          .single();
+          .maybeSingle();
+
+        if (gameError) {
+          toast.error("Error checking active games");
+          throw gameError;
+        }
 
         if (activeGame) {
           toast("Welcome Back!", {
@@ -88,7 +113,7 @@ export const PlayerRegistrationForm = () => {
       }
 
       // Generate Squid Game avatar for new players
-      const avatarUrl = existingPlayer?.avatar_url || generateSquidAvatar();
+      const avatarUrl = generateSquidAvatar();
 
       // Join tournament with selected ID
       const { gameId, playerId } = await tournamentService.joinTournament({
@@ -107,11 +132,16 @@ export const PlayerRegistrationForm = () => {
       form.reset();
       navigate(`/game/${gameId}`);
     } catch (error) {
+      console.error("Registration error:", error);
       toast.error("Error Joining Tournament", {
         description: error instanceof Error ? error.message : "Failed to join tournament",
       });
     }
   };
+
+  if (isLoadingTournaments) {
+    return <div>Loading tournaments...</div>;
+  }
 
   return (
     <Form {...form}>
