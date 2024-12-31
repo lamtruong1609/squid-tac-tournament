@@ -12,7 +12,17 @@ const Index = () => {
   if (isLoggedIn) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <PlayerTournaments />
+        <div className="grid gap-8 md:grid-cols-2">
+          {/* Player Info and Games Section */}
+          <div className="space-y-6">
+            <PlayerTournaments />
+          </div>
+          
+          {/* Active Tournaments Section */}
+          <div className="space-y-6">
+            <ActiveTournaments />
+          </div>
+        </div>
       </div>
     );
   }
@@ -43,10 +53,6 @@ const Index = () => {
             <PlayerRegistrationForm />
           </TabsContent>
         </Tabs>
-
-        <div className="mt-8">
-          <ActiveTournaments />
-        </div>
       </div>
     </div>
   );
