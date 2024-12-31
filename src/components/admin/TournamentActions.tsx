@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import { tournamentManagementService } from "@/services/tournamentManagementService";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,10 +18,9 @@ import { useQueryClient } from "@tanstack/react-query";
 
 interface TournamentActionsProps {
   tournament: any;
-  onAction: () => void;
 }
 
-export const TournamentActions = ({ tournament, onAction }: TournamentActionsProps) => {
+export const TournamentActions = ({ tournament }: TournamentActionsProps) => {
   const queryClient = useQueryClient();
 
   const handleStartTournament = async () => {
@@ -34,45 +32,17 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
         .from("tournaments")
         .update({ 
           status: "in_progress",
-          current_round: 1
+          current_players: players.length
         })
         .eq("id", tournament.id);
 
       if (error) throw error;
+
       toast.success("Tournament started successfully");
-      onAction();
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
     } catch (error) {
       console.error('Error starting tournament:', error);
       toast.error("Failed to start tournament");
-    }
-  };
-
-  const handleNextRound = async () => {
-    try {
-      await tournamentManagementService.createNextRoundMatches(
-        tournament.id,
-        tournament.current_round
-      );
-      toast.success("Next round started successfully");
-      onAction();
-    } catch (error) {
-      console.error('Error starting next round:', error);
-      toast.error("Failed to start next round");
-    }
-  };
-
-  const handleStopTournament = async () => {
-    try {
-      const { error } = await supabase
-        .from("tournaments")
-        .update({ status: "completed" })
-        .eq("id", tournament.id);
-
-      if (error) throw error;
-      toast.success("Tournament completed successfully");
-      onAction();
-    } catch (error) {
-      toast.error("Failed to complete tournament");
     }
   };
 
@@ -94,7 +64,6 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
 
       toast.success("Tournament deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["tournaments"] });
-      onAction();
     } catch (error) {
       console.error('Error deleting tournament:', error);
       toast.error("Failed to delete tournament");
@@ -102,39 +71,23 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
   };
 
   return (
-    <div className="space-x-2">
+    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
       {tournament.status === "waiting" && (
         <Button
+          variant="outline"
           size="sm"
           onClick={handleStartTournament}
         >
           Start
         </Button>
       )}
-      {tournament.status === "in_progress" && !tournament.is_final_round && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleNextRound}
-        >
-          Next Round
-        </Button>
-      )}
-      {tournament.status === "in_progress" && (
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={handleStopTournament}
-        >
-          End
-        </Button>
-      )}
+      
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button
+            variant="outline"
             size="sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive/90"
+            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -144,7 +97,6 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
             <AlertDialogTitle>Delete Tournament</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this tournament? This action cannot be undone.
-              All associated games will also be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

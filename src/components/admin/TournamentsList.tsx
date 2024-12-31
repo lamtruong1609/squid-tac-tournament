@@ -163,10 +163,7 @@ export const TournamentsList = () => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <TournamentActions 
-                    tournament={tournament} 
-                    onAction={refetch}
-                  />
+                  <TournamentActions tournament={tournament} />
                 </TableCell>
               </TableRow>
             ))}
