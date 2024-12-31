@@ -89,34 +89,11 @@ export const PlayerRegistrationForm = () => {
         return;
       }
 
-      // Check for active game if player exists
-      if (existingPlayer) {
-        const { data: activeGame, error: gameError } = await supabase
-          .from('games')
-          .select('*')
-          .or(`player_x.eq.${existingPlayer.id},player_o.eq.${existingPlayer.id}`)
-          .eq('status', 'waiting')
-          .maybeSingle();
-
-        if (gameError) {
-          toast.error("Error checking active games");
-          throw gameError;
-        }
-
-        if (activeGame) {
-          toast("Welcome Back!", {
-            description: `You're already in a game. Waiting for opponent...`,
-          });
-          navigate(`/game/${activeGame.id}`);
-          return;
-        }
-      }
-
       // Generate Squid Game avatar for new players
       const avatarUrl = generateSquidAvatar();
 
       // Join tournament with selected ID
-      const { gameId, playerId } = await tournamentService.joinTournament({
+      const { playerId } = await tournamentService.joinTournament({
         playerName: values.playerName,
         password: values.password,
         tournamentId: values.tournamentId,
@@ -125,12 +102,16 @@ export const PlayerRegistrationForm = () => {
         avatarUrl,
       });
       
+      // Store player info in localStorage
+      localStorage.setItem('playerId', playerId);
+      localStorage.setItem('playerName', values.playerName);
+      
       toast.success("Tournament Joined", {
         description: `Welcome ${values.playerName}! You've successfully joined the tournament.`,
       });
       
       form.reset();
-      navigate(`/game/${gameId}`);
+      navigate('/'); // Redirect to home page instead of game page
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("Error Joining Tournament", {
