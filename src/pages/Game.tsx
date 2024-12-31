@@ -13,23 +13,34 @@ const Game = () => {
         .from('games')
         .select(`
           *,
-          player_x_details:players!player_x(name),
-          player_o_details:players!player_o(name)
+          player_x_details:players!player_x(name, telegram_url, x_url),
+          player_o_details:players!player_o(name, telegram_url, x_url)
         `)
         .eq('id', gameId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching game:', error);
+        throw error;
+      }
       return data;
     },
   });
 
   if (isLoading) {
-    return <div>Loading game...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-muted-foreground">Loading game...</div>
+      </div>
+    );
   }
 
   if (!game) {
-    return <div>Game not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-muted-foreground">Game not found. The game might have been completed or removed.</div>
+      </div>
+    );
   }
 
   if (game.status === 'waiting') {
@@ -48,7 +59,9 @@ const Game = () => {
 
   // TODO: Implement actual game board when status is 'in_progress'
   return (
-    <div>Game in progress</div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-lg">Game in progress</div>
+    </div>
   );
 };
 
