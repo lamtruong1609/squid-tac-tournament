@@ -31,7 +31,9 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
         },
         async (payload) => {
           const newData = payload.new as any;
-          if (newData.player_x_ready && newData.player_o_ready) {
+          const readyPlayers = JSON.parse(newData.ready_players || '[]');
+          
+          if (readyPlayers.length === 2) {
             const { error: updateError } = await supabase
               .from('games')
               .update({ status: 'in_progress' })
@@ -54,17 +56,40 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
   }, [gameId, toast]);
 
   const handleReadyStatus = async () => {
-    const isPlayerX = currentPlayerId === players[0]?.id;
-    const updateField = isPlayerX ? 'player_x_ready' : 'player_o_ready';
-
     try {
-      const { error } = await supabase
+      // First, get the current ready_players array
+      const { data: currentGame, error: fetchError } = await supabase
         .from('games')
-        .update({ [updateField]: !isReady })
+        .select('ready_players')
         .eq('id', gameId)
-        .select();
+        .single();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
+
+      // Parse the current ready_players array or initialize it
+      const readyPlayers = JSON.parse(currentGame.ready_players || '[]');
+
+      // Update the ready_players array based on the current player's action
+      let updatedReadyPlayers;
+      if (!isReady) {
+        // Add current player to ready list if not already included
+        if (!readyPlayers.includes(currentPlayerId)) {
+          updatedReadyPlayers = [...readyPlayers, currentPlayerId];
+        } else {
+          updatedReadyPlayers = readyPlayers;
+        }
+      } else {
+        // Remove current player from ready list
+        updatedReadyPlayers = readyPlayers.filter((id: string) => id !== currentPlayerId);
+      }
+
+      // Update the game with the new ready_players array
+      const { error: updateError } = await supabase
+        .from('games')
+        .update({ ready_players: JSON.stringify(updatedReadyPlayers) })
+        .eq('id', gameId);
+
+      if (updateError) throw updateError;
 
       setIsReady(!isReady);
       toast({
