@@ -1,30 +1,39 @@
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
 
 export const tournamentManagementService = {
   async createTournament() {
-    const { data: tournament, error: tournamentError } = await supabase
+    const { data: existingTournaments } = await supabase
+      .from("tournaments")
+      .select("name")
+      .ilike("name", "Squid Game Round%")
+      .order("created_at", { ascending: false });
+
+    // Calculate the next round number
+    const nextRound = existingTournaments && existingTournaments.length > 0
+      ? existingTournaments.length + 1
+      : 1;
+
+    const { data: tournament, error } = await supabase
       .from("tournaments")
       .insert({
-        name: `Tournament ${new Date().toLocaleDateString()}`,
+        name: `Squid Game Round ${nextRound}`,
         status: "waiting",
-        max_players: 100,
-        current_players: 0,
+        max_players: 8,
+        current_players: 0
       })
       .select()
       .single();
 
-    if (tournamentError) throw tournamentError;
+    if (error) throw error;
     return tournament;
   },
 
   async getAvailablePlayers() {
-    const { data: players, error: playersError } = await supabase
+    const { data: players, error } = await supabase
       .from("players")
-      .select("*")
-      .order('created_at', { ascending: false });
+      .select("*");
 
-    if (playersError) throw playersError;
+    if (error) throw error;
     return players;
   },
 
@@ -63,13 +72,12 @@ export const tournamentManagementService = {
 
     await Promise.all(matchPromises);
 
-    // Update tournament's current_players count
+    // Update tournament with current number of players
     await supabase
       .from("tournaments")
-      .update({ 
-        current_players: players.length,
-        status: players.length >= 2 ? 'in_progress' : 'waiting'
+      .update({
+        current_players: players.length
       })
-      .eq('id', tournament.id);
+      .eq("id", tournament.id);
   }
 };
