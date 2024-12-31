@@ -10,6 +10,7 @@ interface Match {
   player_o: string | null;
   winner: string | null;
   status: 'waiting' | 'in_progress' | 'completed';
+  tournament_id: string;
 }
 
 interface MatchProps {
@@ -18,9 +19,10 @@ interface MatchProps {
 }
 
 const MatchCard = ({ match, players }: MatchProps) => {
-  const getPlayerName = (playerId: string) => {
+  const getPlayerName = (playerId: string | null) => {
+    if (!playerId) return 'Waiting...';
     const player = players.find(p => p.id === playerId);
-    return player?.name || 'TBD';
+    return player?.name || 'Unknown Player';
   };
 
   return (
@@ -37,7 +39,7 @@ const MatchCard = ({ match, players }: MatchProps) => {
           <div className="flex items-center justify-between">
             <span className={`flex items-center gap-2 ${match.winner === match.player_o ? 'text-green-500 font-bold' : ''}`}>
               <User className="h-4 w-4" />
-              {match.player_o ? getPlayerName(match.player_o) : 'Waiting...'}
+              {getPlayerName(match.player_o)}
             </span>
             {match.winner === match.player_o && <Trophy className="h-4 w-4 text-green-500" />}
           </div>
@@ -59,17 +61,17 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ["tournament-matches", tournamentId],
     queryFn: async () => {
+      console.log("Fetching matches for tournament:", tournamentId);
       const { data, error } = await supabase
         .from("games")
-        .select(`
-          *,
-          player_x_details:players!player_x(name),
-          player_o_details:players!player_o(name)
-        `)
-        .eq("tournament_id", tournamentId)
-        .order("created_at", { ascending: true });
+        .select("*")
+        .eq("tournament_id", tournamentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching matches:", error);
+        throw error;
+      }
+      console.log("Fetched matches:", data);
       return data;
     },
   });
@@ -81,7 +83,10 @@ export const TournamentBracket = ({ tournamentId }: { tournamentId: string }) =>
         .from("players")
         .select("*");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching players:", error);
+        throw error;
+      }
       return data;
     },
   });
