@@ -2,9 +2,12 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import WaitingPlayers from '@/components/WaitingPlayers';
+import GameBoard from '@/components/GameBoard';
+import { useEffect, useState } from 'react';
 
 const Game = () => {
   const { gameId } = useParams();
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
   const { data: game, isLoading: gameLoading } = useQuery({
     queryKey: ['game', gameId],
@@ -41,6 +44,39 @@ const Game = () => {
     },
   });
 
+  useEffect(() => {
+    // Subscribe to real-time game updates
+    if (gameId) {
+      const subscription = supabase
+        .channel(`game:${gameId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'games',
+            filter: `id=eq.${gameId}`,
+          },
+          (payload) => {
+            console.log('Game updated:', payload);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [gameId]);
+
+  // Try to get the current player ID from localStorage
+  useEffect(() => {
+    const storedPlayerId = localStorage.getItem('playerId');
+    if (storedPlayerId) {
+      setCurrentPlayerId(storedPlayerId);
+    }
+  }, []);
+
   const isLoading = gameLoading || playersLoading;
 
   if (isLoading) {
@@ -73,10 +109,45 @@ const Game = () => {
     );
   }
 
-  // TODO: Implement actual game board when status is 'in_progress'
+  const board = JSON.parse(game.board);
+  const isMyTurn = (
+    (currentPlayerId === game.player_x && game.next_player === 'X') ||
+    (currentPlayerId === game.player_o && game.next_player === 'O')
+  );
+
+  const getPlayerName = (playerId: string) => {
+    const player = players?.find(p => p.id === playerId);
+    return player?.name || 'Unknown Player';
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-lg">Game in progress</div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold mb-4">Tic Tac Toe</h1>
+        <div className="flex gap-4 justify-center items-center">
+          <div className={`px-4 py-2 rounded ${game.next_player === 'X' ? 'bg-primary text-white' : 'bg-secondary'}`}>
+            X: {getPlayerName(game.player_x)}
+          </div>
+          <div>vs</div>
+          <div className={`px-4 py-2 rounded ${game.next_player === 'O' ? 'bg-primary text-white' : 'bg-secondary'}`}>
+            O: {getPlayerName(game.player_o || '')}
+          </div>
+        </div>
+        {game.winner && (
+          <div className="mt-4 text-xl font-bold text-primary">
+            Winner: {game.winner === 'draw' ? "It's a draw!" : getPlayerName(game.winner)}
+          </div>
+        )}
+      </div>
+
+      {currentPlayerId && (
+        <GameBoard
+          gameId={game.id}
+          playerId={currentPlayerId}
+          board={board}
+          isMyTurn={isMyTurn}
+        />
+      )}
     </div>
   );
 };
