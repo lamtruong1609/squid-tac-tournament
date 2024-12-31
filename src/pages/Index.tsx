@@ -23,10 +23,18 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden">
+      <div className="w-full">
+        <img 
+          src="/lovable-uploads/9412e132-468a-4296-8e3a-327584e4ee1e.png" 
+          alt="Squid Game 2 AI Banner"
+          className="w-full h-48 object-cover object-center"
+        />
+      </div>
+
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-background z-0" />
       
-      <div className="z-10 w-full max-w-6xl mx-auto px-4 flex items-center justify-between gap-8">
+      <div className="z-10 w-full max-w-6xl mx-auto px-4 flex items-center justify-between gap-8 mt-16">
         <div className="flex-1 max-w-md">
           <div className="text-center">
             <h1 className="text-6xl font-bold mb-6">
