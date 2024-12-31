@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "./ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,12 +18,51 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
   const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const subscription = supabase
+      .channel(`game:${gameId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'games',
+          filter: `id=eq.${gameId}`,
+        },
+        async (payload) => {
+          const newData = payload.new as any;
+          if (newData.player_x_ready && newData.player_o_ready) {
+            // Update game status to in_progress when both players are ready
+            const { error: updateError } = await supabase
+              .from('games')
+              .update({ status: 'in_progress' })
+              .eq('id', gameId);
+
+            if (!updateError) {
+              toast({
+                title: "Game Starting!",
+                description: "Both players are ready. The game will begin now.",
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [gameId, toast]);
+
   const handleReadyStatus = async () => {
     try {
+      const isPlayerX = currentPlayerId === players[0]?.id;
+      const updateField = isPlayerX ? 'player_x_ready' : 'player_o_ready';
+
       const { error } = await supabase
         .from('games')
         .update({
-          [`${currentPlayerId === players[0]?.id ? 'player_x_ready' : 'player_o_ready'}`]: !isReady
+          [updateField]: !isReady
         })
         .eq('id', gameId);
 
@@ -35,9 +74,10 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
         description: !isReady ? "Waiting for other player..." : "Please ready up when you're prepared to play",
       });
     } catch (error) {
+      console.error('Error updating ready status:', error);
       toast({
         title: "Error",
-        description: "Failed to update ready status",
+        description: "Failed to update ready status. Please try again.",
         variant: "destructive",
       });
     }
