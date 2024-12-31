@@ -31,9 +31,10 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
         },
         async (payload) => {
           const newData = payload.new as any;
-          const readyPlayers = JSON.parse(newData.ready_players || '[]');
+          const isPlayerXReady = newData.player_x_ready;
+          const isPlayerOReady = newData.player_o_ready;
           
-          if (readyPlayers.length === 2) {
+          if (isPlayerXReady && isPlayerOReady) {
             const { error: updateError } = await supabase
               .from('games')
               .update({ status: 'in_progress' })
@@ -57,39 +58,15 @@ const WaitingPlayers = ({ players, gameId, currentPlayerId }: WaitingPlayersProp
 
   const handleReadyStatus = async () => {
     try {
-      // First, get the current ready_players array
-      const { data: currentGame, error: fetchError } = await supabase
+      const isPlayerX = currentPlayerId === players[0]?.id;
+      const updateField = isPlayerX ? 'player_x_ready' : 'player_o_ready';
+
+      const { error } = await supabase
         .from('games')
-        .select('ready_players')
-        .eq('id', gameId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Parse the current ready_players array or initialize it
-      const readyPlayers = JSON.parse(currentGame.ready_players || '[]');
-
-      // Update the ready_players array based on the current player's action
-      let updatedReadyPlayers;
-      if (!isReady) {
-        // Add current player to ready list if not already included
-        if (!readyPlayers.includes(currentPlayerId)) {
-          updatedReadyPlayers = [...readyPlayers, currentPlayerId];
-        } else {
-          updatedReadyPlayers = readyPlayers;
-        }
-      } else {
-        // Remove current player from ready list
-        updatedReadyPlayers = readyPlayers.filter((id: string) => id !== currentPlayerId);
-      }
-
-      // Update the game with the new ready_players array
-      const { error: updateError } = await supabase
-        .from('games')
-        .update({ ready_players: JSON.stringify(updatedReadyPlayers) })
+        .update({ [updateField]: !isReady })
         .eq('id', gameId);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
       setIsReady(!isReady);
       toast({
