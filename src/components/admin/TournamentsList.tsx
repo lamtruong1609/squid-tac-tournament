@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import {
   Table,
@@ -33,8 +33,9 @@ export const TournamentsList = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [maxPlayers, setMaxPlayers] = useState("8");
+  const queryClient = useQueryClient();
 
-  const { data: tournaments, isLoading, refetch } = useQuery({
+  const { data: tournaments, isLoading } = useQuery({
     queryKey: ["tournaments"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -53,7 +54,7 @@ export const TournamentsList = () => {
       const tournament = await tournamentManagementService.createTournament(parseInt(maxPlayers));
       toast.success("Tournament created successfully");
       setShowCreateDialog(false);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
     } catch (error) {
       console.error('Tournament creation error:', error);
       toast.error("Failed to create tournament");

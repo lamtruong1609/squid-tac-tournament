@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import {
   Table,
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 export const PlayerManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
 
   const { data: players, isLoading } = useQuery({
     queryKey: ["players"],
@@ -56,6 +57,7 @@ export const PlayerManagement = () => {
 
       if (error) throw error;
       toast.success("Player deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["players"] });
     } catch (error) {
       toast.error("Failed to delete player");
     }

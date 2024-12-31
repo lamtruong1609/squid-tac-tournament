@@ -15,6 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface TournamentActionsProps {
   tournament: any;
@@ -22,15 +23,13 @@ interface TournamentActionsProps {
 }
 
 export const TournamentActions = ({ tournament, onAction }: TournamentActionsProps) => {
+  const queryClient = useQueryClient();
+
   const handleStartTournament = async () => {
     try {
-      // Get all available players
       const players = await tournamentManagementService.getAvailablePlayers();
-      
-      // Create initial matches
       await tournamentManagementService.createInitialMatches(tournament, players);
 
-      // Update tournament status
       const { error } = await supabase
         .from("tournaments")
         .update({ 
@@ -79,7 +78,6 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
 
   const handleDeleteTournament = async () => {
     try {
-      // First delete all games associated with this tournament
       const { error: gamesError } = await supabase
         .from("games")
         .delete()
@@ -87,7 +85,6 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
 
       if (gamesError) throw gamesError;
 
-      // Then delete the tournament
       const { error: tournamentError } = await supabase
         .from("tournaments")
         .delete()
@@ -96,6 +93,7 @@ export const TournamentActions = ({ tournament, onAction }: TournamentActionsPro
       if (tournamentError) throw tournamentError;
 
       toast.success("Tournament deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
       onAction();
     } catch (error) {
       console.error('Error deleting tournament:', error);
