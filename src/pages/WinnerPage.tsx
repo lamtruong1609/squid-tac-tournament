@@ -5,41 +5,60 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TournamentBracket } from '@/components/tournament/TournamentBracket';
 
 const WinnerPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [player, setPlayer] = useState<any>(null);
+  const [tournamentId, setTournamentId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPlayerData = async () => {
       const playerId = localStorage.getItem('playerId');
       if (!playerId) return;
 
-      const { data, error } = await supabase
+      // Fetch player data
+      const { data: playerData, error: playerError } = await supabase
         .from('players')
         .select('*')
         .eq('id', playerId)
         .single();
 
-      if (error) {
-        console.error('Error fetching player:', error);
+      if (playerError) {
+        console.error('Error fetching player:', playerError);
         return;
       }
 
-      setPlayer(data);
+      setPlayer(playerData);
+
+      // Fetch latest game to get tournament ID
+      const { data: gameData, error: gameError } = await supabase
+        .from('games')
+        .select('tournament_id')
+        .or(`player_x.eq.${playerId},player_o.eq.${playerId}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (gameError) {
+        console.error('Error fetching game:', gameError);
+        return;
+      }
+
+      setTournamentId(gameData.tournament_id);
     };
 
     fetchPlayerData();
 
     toast({
       title: "Congratulations! 🎉",
-      description: "Waiting for next match...",
+      description: "Check out your next match in the tournament bracket below!",
     });
 
     const timeout = setTimeout(() => {
       navigate('/');
-    }, 10000);
+    }, 30000); // Extended to 30 seconds to give more time to view the bracket
 
     return () => clearTimeout(timeout);
   }, [navigate, toast]);
@@ -47,8 +66,9 @@ const WinnerPage = () => {
   const playerImage = "/lovable-uploads/d1b808b8-eee4-46ca-9eed-2716706fb7a0.png";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-primary/20 to-accent/20 p-4 gap-8">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xl" />
+      
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -90,14 +110,19 @@ const WinnerPage = () => {
             </CardContent>
           </Card>
         )}
-
-        <p className="text-2xl text-white/60">
-          Congratulations on your victory! 🏆
-        </p>
-        <div className="animate-pulse text-primary/80">
-          Please wait while we set up your next challenge
-        </div>
       </motion.div>
+
+      {tournamentId && (
+        <motion.div 
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="relative w-full max-w-7xl bg-black/50 rounded-lg p-6"
+        >
+          <h2 className="text-2xl font-bold text-center mb-6 text-white">Tournament Bracket</h2>
+          <TournamentBracket tournamentId={tournamentId} />
+        </motion.div>
+      )}
     </div>
   );
 };
