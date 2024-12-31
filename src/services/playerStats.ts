@@ -8,37 +8,51 @@ export const updatePlayerStats = async (
 ) => {
   if (!playerOId) return; // Can't update stats if there's no opponent
 
-  // Update player X stats
-  const { error: errorX } = await supabase
-    .from('players')
-    .update({
-      wins: result === 'win' ? `wins + 1` : 'wins',
-      losses: result === 'loss' ? `losses + 1` : 'losses',
-      draws: result === 'draw' ? `draws + 1` : 'draws'
-    })
-    .eq('id', playerXId);
+  try {
+    // First get current stats
+    const { data: playerX } = await supabase
+      .from('players')
+      .select('wins, losses, draws')
+      .eq('id', playerXId)
+      .single();
 
-  if (errorX) {
-    console.error('Error updating player X stats:', errorX);
-    toast.error('Failed to update player X statistics');
-    return;
+    const { data: playerO } = await supabase
+      .from('players')
+      .select('wins, losses, draws')
+      .eq('id', playerOId)
+      .single();
+
+    if (!playerX || !playerO) {
+      throw new Error('Could not find player stats');
+    }
+
+    // Update player X stats
+    const { error: errorX } = await supabase
+      .from('players')
+      .update({
+        wins: result === 'win' ? playerX.wins + 1 : playerX.wins,
+        losses: result === 'loss' ? playerX.losses + 1 : playerX.losses,
+        draws: result === 'draw' ? playerX.draws + 1 : playerX.draws
+      })
+      .eq('id', playerXId);
+
+    if (errorX) throw errorX;
+
+    // Update player O stats
+    const { error: errorO } = await supabase
+      .from('players')
+      .update({
+        wins: result === 'loss' ? playerO.wins + 1 : playerO.wins,
+        losses: result === 'win' ? playerO.losses + 1 : playerO.losses,
+        draws: result === 'draw' ? playerO.draws + 1 : playerO.draws
+      })
+      .eq('id', playerOId);
+
+    if (errorO) throw errorO;
+
+    toast.success('Player statistics updated successfully');
+  } catch (error) {
+    console.error('Error updating player stats:', error);
+    toast.error('Failed to update player statistics');
   }
-
-  // Update player O stats
-  const { error: errorO } = await supabase
-    .from('players')
-    .update({
-      wins: result === 'loss' ? `wins + 1` : 'wins',
-      losses: result === 'win' ? `losses + 1` : 'losses',
-      draws: result === 'draw' ? `draws + 1` : 'draws'
-    })
-    .eq('id', playerOId);
-
-  if (errorO) {
-    console.error('Error updating player O stats:', errorO);
-    toast.error('Failed to update player O statistics');
-    return;
-  }
-
-  toast.success('Player statistics updated successfully');
 };

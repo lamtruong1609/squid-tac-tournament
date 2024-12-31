@@ -76,7 +76,7 @@ const Game = () => {
 
   // Handle winner/loser redirection
   useEffect(() => {
-    if (game?.winner && currentPlayerId) {
+    if (game?.status === 'completed' && currentPlayerId) {
       if (game.winner === 'draw') {
         toast({
           title: "It's a Draw!",
@@ -89,7 +89,7 @@ const Game = () => {
         navigate('/loser');
       }
     }
-  }, [game?.winner, currentPlayerId, navigate, toast]);
+  }, [game?.status, game?.winner, currentPlayerId, navigate, toast]);
 
   const isLoading = gameLoading || playersLoading;
 
