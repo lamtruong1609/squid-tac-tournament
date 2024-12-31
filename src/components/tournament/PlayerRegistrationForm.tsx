@@ -40,9 +40,9 @@ export const PlayerRegistrationForm = () => {
       
       form.reset();
     } catch (error) {
-      toast("Error", {
+      toast("Error Joining Tournament", {
         description: error instanceof Error ? error.message : "Failed to join tournament",
-        variant: "destructive",
+        style: { backgroundColor: 'red', color: 'white' }
       });
     }
   };
