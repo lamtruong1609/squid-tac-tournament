@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import Cookies from 'js-cookie';
-import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 
 const JWT_SECRET = 'your-secret-key'; // In production, this should be an environment variable
 const COOKIE_OPTIONS = {
@@ -8,6 +8,9 @@ const COOKIE_OPTIONS = {
   secure: true, // Only transmitted over HTTPS
   sameSite: 'strict' as const
 };
+
+// Convert string to Uint8Array for jose
+const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 export const authService = {
   async loginPlayer(playerName: string, password: string) {
@@ -21,14 +24,13 @@ export const authService = {
     if (!data) throw new Error('Player not found');
     if (data.password !== password) throw new Error('Invalid password');
 
-    const token = jwt.sign(
-      { 
-        playerId: data.id, 
-        playerName: data.name 
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = await new jose.SignJWT({ 
+      playerId: data.id, 
+      playerName: data.name 
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(secretKey);
 
     Cookies.set('auth_token', token, COOKIE_OPTIONS);
     return data;
@@ -44,14 +46,13 @@ export const authService = {
     if (error) throw error;
     if (!data) throw new Error('Player not found');
 
-    const token = jwt.sign(
-      { 
-        playerId: data.id, 
-        playerName: data.name 
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = await new jose.SignJWT({ 
+      playerId: data.id, 
+      playerName: data.name 
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(secretKey);
 
     Cookies.set('auth_token', token, COOKIE_OPTIONS);
     return data;
@@ -91,7 +92,7 @@ export const authService = {
     if (!token) return false;
 
     try {
-      jwt.verify(token, JWT_SECRET);
+      jose.jwtVerify(token, secretKey);
       return true;
     } catch {
       return false;
@@ -103,8 +104,8 @@ export const authService = {
     if (!token) return null;
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { playerId: string };
-      return decoded.playerId;
+      const decoded = jose.decodeJwt(token);
+      return decoded.playerId as string;
     } catch {
       return null;
     }
