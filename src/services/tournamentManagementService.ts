@@ -5,17 +5,17 @@ export const tournamentManagementService = {
     const { data: existingTournaments } = await supabase
       .from("tournaments")
       .select("name")
-      .ilike("name", "Squid Game Round%")
+      .ilike("name", "Squid Game Tournament%")
       .order("created_at", { ascending: false });
 
-    const nextRound = existingTournaments && existingTournaments.length > 0
+    const nextNumber = existingTournaments && existingTournaments.length > 0
       ? existingTournaments.length + 1
       : 1;
 
     const { data: tournament, error } = await supabase
       .from("tournaments")
       .insert({
-        name: `Squid Game Round ${nextRound}`,
+        name: `Squid Game Tournament ${nextNumber}`,
         status: "waiting",
         max_players: maxPlayers,
         current_players: 0,
