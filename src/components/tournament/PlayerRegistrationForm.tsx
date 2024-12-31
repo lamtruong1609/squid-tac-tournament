@@ -34,16 +34,13 @@ export const PlayerRegistrationForm = () => {
         xUrl: values.xUrl || null,
       });
       
-      toast({
-        title: `Welcome ${values.playerName}!`,
-        description: "You've successfully joined the tournament.",
-        className: "bg-primary text-white",
+      toast("Tournament Joined", {
+        description: `Welcome ${values.playerName}! You've successfully joined the tournament.`,
       });
       
       form.reset();
     } catch (error) {
-      toast({
-        title: "Error",
+      toast("Error", {
         description: error instanceof Error ? error.message : "Failed to join tournament",
         variant: "destructive",
       });
