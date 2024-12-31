@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, Twitter } from "lucide-react";
 import { toast } from "sonner";
 import { tournamentService } from "@/services/tournamentService";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -17,6 +19,7 @@ const formSchema = z.object({
 });
 
 export const PlayerRegistrationForm = () => {
+  const navigate = useNavigate();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -28,6 +31,33 @@ export const PlayerRegistrationForm = () => {
 
   const startGame = async (values: z.infer<typeof formSchema>) => {
     try {
+      // Check if player exists
+      const { data: existingPlayer } = await supabase
+        .from('players')
+        .select('id, name')
+        .eq('name', values.playerName)
+        .single();
+
+      if (existingPlayer) {
+        // If player exists, find their active game
+        const { data: activeGame } = await supabase
+          .from('games')
+          .select('*')
+          .or(`player_x.eq.${existingPlayer.id},player_o.eq.${existingPlayer.id}`)
+          .eq('status', 'waiting')
+          .single();
+
+        if (activeGame) {
+          toast("Welcome Back!", {
+            description: `You're already in a game. Waiting for opponent...`,
+          });
+          // Navigate to game page or waiting room
+          navigate(`/game/${activeGame.id}`);
+          return;
+        }
+      }
+
+      // If player doesn't exist or has no active game, create new
       const { gameId, playerId } = await tournamentService.joinTournament({
         playerName: values.playerName,
         telegramUrl: values.telegramUrl || null,
@@ -39,6 +69,8 @@ export const PlayerRegistrationForm = () => {
       });
       
       form.reset();
+      // Navigate to waiting room
+      navigate(`/game/${gameId}`);
     } catch (error) {
       toast("Error Joining Tournament", {
         description: error instanceof Error ? error.message : "Failed to join tournament",
