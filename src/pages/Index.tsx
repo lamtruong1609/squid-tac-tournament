@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import GameBoard from "@/components/GameBoard";
-import GeometricShapes from "@/components/GeometricShapes";
-import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import WaitingPlayers from "@/components/WaitingPlayers";
 import { MessageCircle, Twitter } from "lucide-react";
 import { tournamentService } from "@/services/tournamentService";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -21,19 +21,27 @@ const formSchema = z.object({
 });
 
 const Index = () => {
-  const [gameState, setGameState] = useState<{
-    gameId: string;
-    playerId: string;
-  } | null>(null);
-  const [waitingPlayers, setWaitingPlayers] = useState<string[]>([]);
   const { toast } = useToast();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       playerName: "",
       telegramUrl: "",
       xUrl: "",
+    },
+  });
+
+  const { data: activeTournaments, isLoading } = useQuery({
+    queryKey: ["active-tournaments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tournaments")
+        .select("*")
+        .eq("status", "waiting")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -44,13 +52,10 @@ const Index = () => {
         telegramUrl: values.telegramUrl || null,
         xUrl: values.xUrl || null,
       });
-
-      setGameState({ gameId, playerId });
-      setWaitingPlayers([...waitingPlayers, values.playerName]);
       
       toast({
         title: `Welcome ${values.playerName}!`,
-        description: "Waiting for more players to join...",
+        description: "You've successfully joined the tournament.",
         className: "bg-primary text-white",
       });
       
@@ -64,29 +69,41 @@ const Index = () => {
     }
   };
 
-  if (gameState) {
-    return (
-      <GameBoard 
-        gameId={gameState.gameId}
-        playerId={gameState.playerId}
-        onGameEnd={() => setGameState(null)}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
-      <GeometricShapes />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-background z-0" />
       
-      <div className="z-10 text-center">
-        <h1 className="text-6xl font-bold mb-6 glowing">
+      <div className="z-10 text-center max-w-2xl mx-auto px-4">
+        <h1 className="text-6xl font-bold mb-6">
           Tic-Tac-Toe
           <span className="block text-primary mt-2">Tournament</span>
         </h1>
         
-        <p className="text-xl text-muted-foreground mb-8 max-w-md mx-auto">
+        <p className="text-xl text-muted-foreground mb-8">
           Enter the arena and prove your worth in this high-stakes tournament of skill and strategy.
         </p>
+
+        {activeTournaments && activeTournaments.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Active Tournaments</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {activeTournaments.map((tournament) => (
+                <div 
+                  key={tournament.id}
+                  className="p-4 border rounded-lg bg-card hover:bg-card/80 transition-colors"
+                >
+                  <h3 className="font-semibold">{tournament.name}</h3>
+                  <div className="flex items-center justify-between mt-2">
+                    <Badge variant="secondary">
+                      {tournament.current_players}/{tournament.max_players} Players
+                    </Badge>
+                    <Badge variant="outline">Waiting</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(startGame)} className="space-y-6 max-w-sm mx-auto">
@@ -154,16 +171,12 @@ const Index = () => {
             
             <Button
               type="submit"
-              className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 neon-border w-full"
+              className="w-full text-lg px-8 py-6 bg-primary hover:bg-primary/90"
             >
               Join Tournament
             </Button>
           </form>
         </Form>
-
-        {waitingPlayers.length > 0 && (
-          <WaitingPlayers players={waitingPlayers} />
-        )}
       </div>
     </div>
   );
