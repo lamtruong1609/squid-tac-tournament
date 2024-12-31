@@ -26,20 +26,24 @@ export const TournamentActions = ({ tournament }: TournamentActionsProps) => {
   const handleStartTournament = async () => {
     try {
       const players = await tournamentManagementService.getAvailablePlayers();
-      await tournamentManagementService.createInitialMatches(tournament, players);
+      
+      // Only take the first max_players number of players
+      const selectedPlayers = players.slice(0, tournament.max_players);
+      await tournamentManagementService.createInitialMatches(tournament, selectedPlayers);
 
       const { error } = await supabase
         .from("tournaments")
         .update({ 
           status: "in_progress",
-          current_players: players.length
+          current_players: selectedPlayers.length
         })
         .eq("id", tournament.id);
 
       if (error) throw error;
 
       toast.success("Tournament started successfully");
-      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      await queryClient.invalidateQueries({ queryKey: ["players"] });
     } catch (error) {
       console.error('Error starting tournament:', error);
       toast.error("Failed to start tournament");
@@ -48,6 +52,7 @@ export const TournamentActions = ({ tournament }: TournamentActionsProps) => {
 
   const handleDeleteTournament = async () => {
     try {
+      // First delete all games in the tournament
       const { error: gamesError } = await supabase
         .from("games")
         .delete()
@@ -55,6 +60,7 @@ export const TournamentActions = ({ tournament }: TournamentActionsProps) => {
 
       if (gamesError) throw gamesError;
 
+      // Then delete the tournament
       const { error: tournamentError } = await supabase
         .from("tournaments")
         .delete()
@@ -63,7 +69,8 @@ export const TournamentActions = ({ tournament }: TournamentActionsProps) => {
       if (tournamentError) throw tournamentError;
 
       toast.success("Tournament deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+      await queryClient.invalidateQueries({ queryKey: ["games"] });
     } catch (error) {
       console.error('Error deleting tournament:', error);
       toast.error("Failed to delete tournament");

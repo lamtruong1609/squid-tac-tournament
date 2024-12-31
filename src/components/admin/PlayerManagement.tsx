@@ -19,7 +19,7 @@ export const PlayerManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: players, isLoading } = useQuery({
+  const { data: players, isLoading, refetch } = useQuery({
     queryKey: ["players"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -50,15 +50,28 @@ export const PlayerManagement = () => {
 
   const handleDeletePlayer = async (id: string) => {
     try {
-      const { error } = await supabase
+      // First delete all games associated with this player
+      const { error: gamesError } = await supabase
+        .from("games")
+        .delete()
+        .or(`player_x.eq.${id},player_o.eq.${id}`);
+
+      if (gamesError) throw gamesError;
+
+      // Then delete the player
+      const { error: playerError } = await supabase
         .from("players")
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (playerError) throw playerError;
+
       toast.success("Player deleted successfully");
+      await refetch(); // Immediately refetch the data
       queryClient.invalidateQueries({ queryKey: ["players"] });
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] }); // Also refresh tournaments
     } catch (error) {
+      console.error('Error deleting player:', error);
       toast.error("Failed to delete player");
     }
   };

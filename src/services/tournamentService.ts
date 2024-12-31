@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/supabase-types'
 import { calculateWinner } from './gameLogic'
 import { updatePlayerStats } from './playerStats'
+import { toast } from "sonner"
 
 type Tournament = Database['public']['Tables']['tournaments']['Row']
 type Game = Database['public']['Tables']['games']['Row']
@@ -25,6 +26,19 @@ export const tournamentService = {
     xUrl,
     avatarUrl 
   }: JoinTournamentParams) {
+    // First check if tournament is full
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('current_players, max_players')
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError) throw tournamentError;
+
+    if (tournament.current_players >= tournament.max_players) {
+      throw new Error('Tournament is full');
+    }
+
     // Create or update player
     const { data: existingPlayer } = await supabase
       .from('players')
@@ -69,7 +83,17 @@ export const tournamentService = {
       playerId = newPlayer.id;
     }
 
-    // Find waiting game in the selected tournament
+    // Increment current_players count
+    const { error: updateError } = await supabase
+      .from('tournaments')
+      .update({
+        current_players: tournament.current_players + 1
+      })
+      .eq('id', tournamentId);
+
+    if (updateError) throw updateError;
+
+    // Find or create game
     const { data: game, error: gameError } = await supabase
       .from('games')
       .select()
@@ -101,7 +125,7 @@ export const tournamentService = {
     }
 
     // Join existing game as player O
-    const { error: updateError } = await supabase
+    const { error: joinError } = await supabase
       .from('games')
       .update({
         player_o: playerId,
@@ -109,7 +133,7 @@ export const tournamentService = {
       })
       .eq('id', game.id);
 
-    if (updateError) throw updateError;
+    if (joinError) throw joinError;
 
     return {
       gameId: game.id,
