@@ -12,23 +12,25 @@ import Game from "./pages/Game";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <WagmiConfig config={config}>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
+const App = () => {
+  return (
+    <WagmiConfig config={config}>
+      <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/game/:gameId" element={<Game />} />
-          </Routes>
+          <TooltipProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/game/:gameId" element={<Game />} />
+            </Routes>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
         </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </WagmiConfig>
-);
+      </QueryClientProvider>
+    </WagmiConfig>
+  );
+};
 
 export default App;
