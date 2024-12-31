@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlayersList } from "@/components/admin/PlayersList";
+import { PlayerManagement } from "@/components/admin/PlayerManagement";
 import { TournamentsList } from "@/components/admin/TournamentsList";
 import { toast } from "sonner";
 
@@ -41,7 +41,7 @@ const AdminDashboard = () => {
           <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
         </TabsList>
         <TabsContent value="players">
-          <PlayersList />
+          <PlayerManagement />
         </TabsContent>
         <TabsContent value="tournaments">
           <TournamentsList />
