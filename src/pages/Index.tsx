@@ -12,16 +12,12 @@ const Index = () => {
   if (isLoggedIn) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="max-w-3xl mx-auto space-y-8">
           {/* Player Info and Games Section */}
-          <div className="space-y-6">
-            <PlayerTournaments />
-          </div>
+          <PlayerTournaments />
           
           {/* Active Tournaments Section */}
-          <div className="space-y-6">
-            <ActiveTournaments />
-          </div>
+          <ActiveTournaments />
         </div>
       </div>
     );
