@@ -75,6 +75,7 @@ export interface Database {
           id: string
           created_at: string
           name: string
+          password: string
           telegram_url: string | null
           x_url: string | null
           wins: number
@@ -85,6 +86,7 @@ export interface Database {
           id?: string
           created_at?: string
           name: string
+          password: string
           telegram_url?: string | null
           x_url?: string | null
           wins?: number
@@ -95,6 +97,7 @@ export interface Database {
           id?: string
           created_at?: string
           name?: string
+          password?: string
           telegram_url?: string | null
           x_url?: string | null
           wins?: number
