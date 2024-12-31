@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Search, Trophy, User } from "lucide-react";
 import { toast } from "sonner";
 
 export const PlayerManagement = () => {
@@ -65,7 +65,7 @@ export const PlayerManagement = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -74,6 +74,16 @@ export const PlayerManagement = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            <User className="h-3 w-3" />
+            {players?.length || 0} Players
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <Trophy className="h-3 w-3" />
+            {players?.filter(p => p.wins > p.losses).length || 0} Winners
+          </Badge>
         </div>
       </div>
 
