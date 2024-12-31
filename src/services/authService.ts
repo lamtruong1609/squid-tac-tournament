@@ -17,6 +17,17 @@ export const authService = {
     return data;
   },
 
+  async getPlayerInfo(playerId: string) {
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('id', playerId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async getPlayerTournaments(playerId: string) {
     const { data, error } = await supabase
       .from('games')
