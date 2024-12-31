@@ -17,6 +17,8 @@ export interface Database {
           status: 'waiting' | 'in_progress' | 'completed'
           max_players: number
           current_players: number
+          current_round: number
+          is_final_round: boolean
         }
         Insert: {
           id?: string
@@ -25,6 +27,8 @@ export interface Database {
           status?: 'waiting' | 'in_progress' | 'completed'
           max_players?: number
           current_players?: number
+          current_round?: number
+          is_final_round?: boolean
         }
         Update: {
           id?: string
@@ -33,6 +37,8 @@ export interface Database {
           status?: 'waiting' | 'in_progress' | 'completed'
           max_players?: number
           current_players?: number
+          current_round?: number
+          is_final_round?: boolean
         }
       }
       games: {
@@ -46,6 +52,7 @@ export interface Database {
           next_player: 'X' | 'O'
           winner: string | null
           status: 'waiting' | 'in_progress' | 'completed'
+          round: number
         }
         Insert: {
           id?: string
@@ -57,6 +64,7 @@ export interface Database {
           next_player?: 'X' | 'O'
           winner?: string | null
           status?: 'waiting' | 'in_progress' | 'completed'
+          round?: number
         }
         Update: {
           id?: string
@@ -68,6 +76,7 @@ export interface Database {
           next_player?: 'X' | 'O'
           winner?: string | null
           status?: 'waiting' | 'in_progress' | 'completed'
+          round?: number
         }
       }
       players: {
