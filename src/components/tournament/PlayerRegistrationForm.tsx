@@ -18,6 +18,8 @@ const formSchema = z.object({
     message: "Password must be at least 6 characters.",
   }),
   tournamentId: z.string().nonempty("Tournament ID is required"),
+  telegramUrl: z.string().optional(),
+  xUrl: z.string().optional(),
 });
 
 export const PlayerRegistrationForm = () => {
@@ -28,6 +30,8 @@ export const PlayerRegistrationForm = () => {
       playerName: "",
       password: "",
       tournamentId: "",
+      telegramUrl: "",
+      xUrl: "",
     },
   });
 
@@ -53,6 +57,8 @@ export const PlayerRegistrationForm = () => {
         playerName: values.playerName,
         password: values.password,
         tournamentId: values.tournamentId,
+        telegramUrl: values.telegramUrl || null,
+        xUrl: values.xUrl || null,
         avatarUrl,
       });
       
@@ -109,6 +115,34 @@ export const PlayerRegistrationForm = () => {
               <FormLabel>Tournament ID</FormLabel>
               <FormControl>
                 <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="telegramUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Telegram URL (Optional)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="https://t.me/yourusername" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="xUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>X/Twitter URL (Optional)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="https://x.com/yourusername" />
               </FormControl>
               <FormMessage />
             </FormItem>
