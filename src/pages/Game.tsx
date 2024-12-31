@@ -139,6 +139,9 @@ const Game = () => {
           playerId={currentPlayerId}
           board={board}
           isMyTurn={isMyTurn}
+          currentTurn={game.current_turn || 1}
+          gameStatus={game.status}
+          turnsHistory={JSON.parse(game.turns_history || '[]')}
         />
       )}
     </div>

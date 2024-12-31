@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { gameService } from '@/services/gameService';
 import { Badge } from './ui/badge';
-import { Sword, HandRock, Scroll, Scissors } from 'lucide-react';
+import { Sword, Hand, Scroll, Scissors } from 'lucide-react';
 
 interface GameBoardProps {
   gameId: string;
@@ -87,7 +87,7 @@ const GameBoard = ({
         </Badge>
         <div className="flex gap-2">
           {turnsHistory.map((turn, index) => (
-            <Badge key={index} variant={turn.winner === playerId ? "success" : turn.winner === 'draw' ? "secondary" : "destructive"}>
+            <Badge key={index} variant={turn.winner === playerId ? "default" : turn.winner === 'draw' ? "secondary" : "destructive"}>
               {turn.winner === playerId ? 'Won' : turn.winner === 'draw' ? 'Draw' : 'Lost'}
             </Badge>
           ))}
@@ -103,7 +103,7 @@ const GameBoard = ({
               disabled={!isMyTurn}
               className="p-6"
             >
-              <HandRock className="h-8 w-8" />
+              <Hand className="h-8 w-8" />
             </Button>
             <Button
               onClick={() => handleRPSChoice('paper')}
