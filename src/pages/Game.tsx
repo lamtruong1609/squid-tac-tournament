@@ -82,12 +82,18 @@ const Game = () => {
           title: "It's a Draw!",
           description: "Good game!",
         });
-        navigate('/');
       } else if (game.winner === currentPlayerId) {
-        navigate('/winner');
+        toast({
+          title: "Congratulations!",
+          description: "You've won the game!",
+        });
       } else {
-        navigate('/loser');
+        toast({
+          title: "Better luck next time!",
+          description: "Don't give up!",
+        });
       }
+      navigate('/');
     }
   }, [game?.status, game?.winner, currentPlayerId, navigate, toast]);
 
