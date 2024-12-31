@@ -73,6 +73,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
       const isLoser = await checkLastGameResult(player.id);
       if (!isLoser) {
         onSuccess();
+        navigate('/'); // Redirect to home page after successful login
       }
     } catch (error) {
       console.error("Login error:", error);
