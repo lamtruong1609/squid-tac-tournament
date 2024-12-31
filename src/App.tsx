@@ -17,7 +17,7 @@ const App = () => {
     <WagmiConfig config={config}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <TooltipProvider>
+          <TooltipProvider delayDuration={0}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<Admin />} />
