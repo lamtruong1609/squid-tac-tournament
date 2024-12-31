@@ -7,7 +7,7 @@ import { PlayerTournaments } from "@/components/tournament/PlayerTournaments";
 import { authService } from "@/services/authService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Twitter, Telegram } from "lucide-react";
+import { Twitter } from "lucide-react";
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isLoggedIn());
@@ -105,7 +105,7 @@ const Index = () => {
             rel="noopener noreferrer"
             className="flex items-center gap-2 hover:text-primary transition-colors"
           >
-            <Telegram size={16} /> Telegram: Squid_Game2AI
+            📱 Telegram: Squid_Game2AI
           </a>
         </div>
       </footer>
