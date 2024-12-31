@@ -4,10 +4,12 @@ import { supabase } from '@/lib/supabase';
 import WaitingPlayers from '@/components/WaitingPlayers';
 import GameBoard from '@/components/GameBoard';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const Game = () => {
   const { gameId } = useParams();
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: game, isLoading: gameLoading } = useQuery({
     queryKey: ['game', gameId],
@@ -58,6 +60,45 @@ const Game = () => {
           },
           (payload) => {
             console.log('Game updated:', payload);
+            const newData = payload.new as any;
+
+            // Handle game status changes
+            if (newData.status === 'in_progress' && game?.status === 'waiting') {
+              toast({
+                title: "Game Started!",
+                description: "Both players are ready. The game has begun.",
+              });
+            }
+
+            // Handle game moves
+            if (newData.board !== game?.board) {
+              const currentBoard = JSON.parse(game?.board || '[]');
+              const newBoard = JSON.parse(newData.board);
+              
+              // Find the position that changed
+              const movePosition = newBoard.findIndex((cell: string | null, index: number) => 
+                cell !== currentBoard[index]
+              );
+
+              if (movePosition !== -1) {
+                toast({
+                  title: "New Move",
+                  description: `Player placed ${newBoard[movePosition]} at position ${movePosition + 1}`,
+                });
+              }
+            }
+
+            // Handle game completion
+            if (newData.winner && !game?.winner) {
+              const winnerMessage = newData.winner === 'draw' 
+                ? "Game ended in a draw!"
+                : `Player ${newData.winner === game?.player_x ? 'X' : 'O'} won!`;
+              
+              toast({
+                title: "Game Over",
+                description: winnerMessage,
+              });
+            }
           }
         )
         .subscribe();
@@ -66,7 +107,7 @@ const Game = () => {
         subscription.unsubscribe();
       };
     }
-  }, [gameId]);
+  }, [gameId, game, toast]);
 
   useEffect(() => {
     const storedPlayerId = localStorage.getItem('playerId');
