@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import WaitingPlayers from '@/components/WaitingPlayers';
@@ -12,6 +12,7 @@ const Game = () => {
   const { gameId } = useParams();
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Poll game status every 3 seconds
   const { data: game, isLoading: gameLoading } = useQuery({
@@ -72,6 +73,23 @@ const Game = () => {
       setCurrentPlayerId(storedPlayerId);
     }
   }, []);
+
+  // Handle winner/loser redirection
+  useEffect(() => {
+    if (game?.winner && currentPlayerId) {
+      if (game.winner === 'draw') {
+        toast({
+          title: "It's a Draw!",
+          description: "Both players played well!",
+        });
+        setTimeout(() => navigate('/'), 3000);
+      } else if (game.winner === currentPlayerId) {
+        navigate('/winner');
+      } else {
+        navigate('/loser');
+      }
+    }
+  }, [game?.winner, currentPlayerId, navigate, toast]);
 
   const isLoading = gameLoading || playersLoading;
 

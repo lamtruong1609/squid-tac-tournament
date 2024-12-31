@@ -54,7 +54,9 @@ export const GameHeader = ({ game, players, currentPlayerId }: GameHeaderProps) 
       {game.winner && (
         <div className="mt-8 text-2xl font-bold">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-            {game.winner === 'draw' ? "It's a draw!" : `Winner: ${getPlayerName(game.winner)}`}
+            {game.winner === 'draw' 
+              ? "It's a draw!" 
+              : `Winner: ${getPlayerName(game.winner)}`}
           </span>
         </div>
       )}
