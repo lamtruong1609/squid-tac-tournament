@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { tournamentService } from "@/services/tournamentService";
 import { useNavigate } from "react-router-dom";
-import Cookies from 'js-cookie';
+import { generateSquidAvatar } from "@/utils/avatarUtils";
+import { supabase } from "@/lib/supabase";
 
 const formSchema = z.object({
   playerName: z.string().min(2, {
@@ -32,7 +33,12 @@ export const PlayerRegistrationForm = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const existingPlayer = await tournamentService.getPlayerByName(values.playerName);
+      // Check if player exists
+      const { data: existingPlayer } = await supabase
+        .from('players')
+        .select('id')
+        .eq('name', values.playerName)
+        .single();
 
       if (existingPlayer) {
         toast.error("Player already exists. Please log in.");
@@ -43,24 +49,11 @@ export const PlayerRegistrationForm = () => {
       const avatarUrl = generateSquidAvatar();
 
       // Join tournament with selected ID
-      const { playerId } = await tournamentService.joinTournament({
+      await tournamentService.joinTournament({
         playerName: values.playerName,
         password: values.password,
         tournamentId: values.tournamentId,
-        existingPlayerId: existingPlayer?.id,
         avatarUrl,
-      });
-      
-      // Store player info in cookies instead of localStorage
-      Cookies.set('playerId', playerId, {
-        expires: 7,
-        secure: true,
-        sameSite: 'strict'
-      });
-      Cookies.set('playerName', values.playerName, {
-        expires: 7,
-        secure: true,
-        sameSite: 'strict'
       });
       
       toast.success("Tournament Joined", {

@@ -5,7 +5,6 @@ export const generateSquidAvatar = () => {
   const shape = SQUID_GAME_SHAPES[Math.floor(Math.random() * SQUID_GAME_SHAPES.length)];
   const color = SQUID_GAME_COLORS[Math.floor(Math.random() * SQUID_GAME_COLORS.length)];
   
-  // Generate SVG for the avatar
   const svg = `
     <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       ${shape === 'circle' 
@@ -17,7 +16,6 @@ export const generateSquidAvatar = () => {
     </svg>
   `;
 
-  // Convert SVG to data URL
   const dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`;
   return dataUrl;
 };

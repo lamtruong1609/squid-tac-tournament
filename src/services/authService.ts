@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import Cookies from 'js-cookie';
+import jwt from 'jsonwebtoken';
 
+const JWT_SECRET = 'your-secret-key'; // In production, this should be an environment variable
 const COOKIE_OPTIONS = {
   expires: 7, // Cookie expires in 7 days
   secure: true, // Only transmitted over HTTPS
@@ -19,9 +21,16 @@ export const authService = {
     if (!data) throw new Error('Player not found');
     if (data.password !== password) throw new Error('Invalid password');
 
-    // Set cookies instead of localStorage
-    Cookies.set('playerId', data.id, COOKIE_OPTIONS);
-    Cookies.set('playerName', data.name, COOKIE_OPTIONS);
+    const token = jwt.sign(
+      { 
+        playerId: data.id, 
+        playerName: data.name 
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    Cookies.set('auth_token', token, COOKIE_OPTIONS);
     return data;
   },
 
@@ -55,11 +64,30 @@ export const authService = {
   },
 
   isLoggedIn() {
-    return !!Cookies.get('playerId');
+    const token = Cookies.get('auth_token');
+    if (!token) return false;
+
+    try {
+      jwt.verify(token, JWT_SECRET);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  getLoggedInPlayerId() {
+    const token = Cookies.get('auth_token');
+    if (!token) return null;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { playerId: string };
+      return decoded.playerId;
+    } catch {
+      return null;
+    }
   },
 
   logout() {
-    Cookies.remove('playerId');
-    Cookies.remove('playerName');
+    Cookies.remove('auth_token');
   }
 };
