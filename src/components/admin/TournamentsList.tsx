@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { TournamentBracket } from "../tournament/TournamentBracket";
 import { MatchPairing } from "../tournament/MatchPairing";
@@ -20,6 +20,7 @@ import { tournamentManagementService } from "@/services/tournamentManagementServ
 
 export const TournamentsList = () => {
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: tournaments, isLoading, refetch } = useQuery({
     queryKey: ["tournaments"],
@@ -35,6 +36,7 @@ export const TournamentsList = () => {
   });
 
   const handleCreateTournament = async () => {
+    setIsCreating(true);
     try {
       const tournament = await tournamentManagementService.createTournament();
       const players = await tournamentManagementService.getAvailablePlayers();
@@ -45,6 +47,8 @@ export const TournamentsList = () => {
     } catch (error) {
       console.error('Tournament creation error:', error);
       toast.error("Failed to create tournament");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -72,9 +76,16 @@ export const TournamentsList = () => {
             Create and manage your tournaments
           </p>
         </div>
-        <Button onClick={handleCreateTournament}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Tournament
+        <Button 
+          onClick={handleCreateTournament} 
+          disabled={isCreating}
+        >
+          {isCreating ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="mr-2 h-4 w-4" />
+          )}
+          {isCreating ? "Creating..." : "New Tournament"}
         </Button>
       </div>
 

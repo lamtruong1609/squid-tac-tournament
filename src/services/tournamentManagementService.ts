@@ -31,20 +31,34 @@ export const tournamentManagementService = {
   async createInitialMatches(tournament: any, players: any[]) {
     if (players.length < 2) return;
 
+    // Create unique pairs of players
     const matchPromises = [];
-    for (let i = 0; i < players.length - 1; i += 2) {
-      matchPromises.push(
-        supabase
-          .from("games")
-          .insert({
-            tournament_id: tournament.id,
-            player_x: players[i].id,
-            player_o: players[i + 1].id,
-            board: JSON.stringify(Array(9).fill(null)),
-            next_player: 'X',
-            status: 'waiting'
-          })
-      );
+    const playerPairs = new Set();
+
+    for (let i = 0; i < players.length; i++) {
+      for (let j = i + 1; j < players.length; j++) {
+        const player1 = players[i].id;
+        const player2 = players[j].id;
+        
+        // Create a unique key for this pair (order doesn't matter)
+        const pairKey = [player1, player2].sort().join('-');
+        
+        if (!playerPairs.has(pairKey)) {
+          playerPairs.add(pairKey);
+          matchPromises.push(
+            supabase
+              .from("games")
+              .insert({
+                tournament_id: tournament.id,
+                player_x: player1,
+                player_o: player2,
+                board: JSON.stringify(Array(9).fill(null)),
+                next_player: 'X',
+                status: 'waiting'
+              })
+          );
+        }
+      }
     }
 
     await Promise.all(matchPromises);
