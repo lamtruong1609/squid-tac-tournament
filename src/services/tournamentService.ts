@@ -29,53 +29,57 @@ export const tournamentService = {
 
     if (playerError) throw playerError;
 
-    // Find or create tournament
-    const { data: tournament, error: tournamentError } = await supabase
+    // Find waiting tournament
+    let { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .select()
       .eq('status', 'waiting')
       .limit(1)
-      .single()
-      .catch(async () => {
-        // If no waiting tournament exists, create one
-        return await supabase
-          .from('tournaments')
-          .insert({
-            name: 'Tournament ' + new Date().toLocaleDateString(),
-            max_players: 8,
-            current_players: 0,
-            status: 'waiting'
-          })
-          .select()
-          .single();
-      });
+      .single();
 
-    if (tournamentError) throw tournamentError;
+    // If no waiting tournament exists, create one
+    if (tournamentError) {
+      const { data: newTournament, error: createError } = await supabase
+        .from('tournaments')
+        .insert({
+          name: 'Tournament ' + new Date().toLocaleDateString(),
+          max_players: 8,
+          current_players: 0,
+          status: 'waiting'
+        })
+        .select()
+        .single();
+        
+      if (createError) throw createError;
+      tournament = newTournament;
+    }
 
-    // Create or join game
-    const { data: game, error: gameError } = await supabase
+    // Find waiting game
+    let { data: game, error: gameError } = await supabase
       .from('games')
       .select()
       .eq('tournament_id', tournament.id)
       .eq('status', 'waiting')
       .limit(1)
-      .single()
-      .catch(async () => {
-        // If no waiting game exists, create one
-        return await supabase
-          .from('games')
-          .insert({
-            tournament_id: tournament.id,
-            player_x: player.id,
-            board: JSON.stringify(Array(9).fill(null)),
-            next_player: 'X',
-            status: 'waiting'
-          })
-          .select()
-          .single();
-      });
+      .single();
 
-    if (gameError) throw gameError;
+    // If no waiting game exists, create one
+    if (gameError) {
+      const { data: newGame, error: createGameError } = await supabase
+        .from('games')
+        .insert({
+          tournament_id: tournament.id,
+          player_x: player.id,
+          board: JSON.stringify(Array(9).fill(null)),
+          next_player: 'X',
+          status: 'waiting'
+        })
+        .select()
+        .single();
+        
+      if (createGameError) throw createGameError;
+      game = newGame;
+    }
 
     // If game already exists and needs player O
     if (game.status === 'waiting' && !game.player_o) {
