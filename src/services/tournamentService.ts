@@ -7,69 +7,64 @@ type Player = Database['public']['Tables']['players']['Row']
 
 interface JoinTournamentParams {
   playerName: string;
+  password: string;
+  tournamentId: string;
   telegramUrl: string | null;
   xUrl: string | null;
 }
 
 export const tournamentService = {
-  async joinTournament({ playerName, telegramUrl, xUrl }: JoinTournamentParams) {
-    // Create player
-    const { data: player, error: playerError } = await supabase
+  async joinTournament({ playerName, password, tournamentId, telegramUrl, xUrl }: JoinTournamentParams) {
+    // Create or update player
+    const { data: existingPlayer } = await supabase
       .from('players')
-      .insert({
-        name: playerName,
-        telegram_url: telegramUrl,
-        x_url: xUrl,
-        wins: 0,
-        losses: 0,
-        draws: 0
-      })
-      .select()
+      .select('id, password')
+      .eq('name', playerName)
       .single();
 
-    if (playerError) throw playerError;
+    let playerId;
 
-    // Find waiting tournament
-    let { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select()
-      .eq('status', 'waiting')
-      .limit(1)
-      .single();
-
-    // If no waiting tournament exists, create one
-    if (tournamentError) {
-      const { data: newTournament, error: createError } = await supabase
-        .from('tournaments')
+    if (existingPlayer) {
+      if (existingPlayer.password !== password) {
+        throw new Error('Incorrect password');
+      }
+      playerId = existingPlayer.id;
+    } else {
+      const { data: newPlayer, error: playerError } = await supabase
+        .from('players')
         .insert({
-          name: 'Tournament ' + new Date().toLocaleDateString(),
-          max_players: 8,
-          current_players: 0,
-          status: 'waiting'
+          name: playerName,
+          password: password,
+          telegram_url: telegramUrl,
+          x_url: xUrl,
+          wins: 0,
+          losses: 0,
+          draws: 0
         })
         .select()
         .single();
-        
-      if (createError) throw createError;
-      tournament = newTournament;
+
+      if (playerError) throw playerError;
+      playerId = newPlayer.id;
     }
 
-    // Find waiting game
-    let { data: game, error: gameError } = await supabase
+    // Find waiting game in the selected tournament
+    const { data: game, error: gameError } = await supabase
       .from('games')
       .select()
-      .eq('tournament_id', tournament.id)
+      .eq('tournament_id', tournamentId)
       .eq('status', 'waiting')
+      .is('player_o', null)
       .limit(1)
       .single();
 
-    // If no waiting game exists, create one
     if (gameError) {
+      // If no waiting game exists, create one
       const { data: newGame, error: createGameError } = await supabase
         .from('games')
         .insert({
-          tournament_id: tournament.id,
-          player_x: player.id,
+          tournament_id: tournamentId,
+          player_x: playerId,
           board: JSON.stringify(Array(9).fill(null)),
           next_player: 'X',
           status: 'waiting'
@@ -78,25 +73,26 @@ export const tournamentService = {
         .single();
         
       if (createGameError) throw createGameError;
-      game = newGame;
+      return {
+        gameId: newGame.id,
+        playerId
+      };
     }
 
-    // If game already exists and needs player O
-    if (game.status === 'waiting' && !game.player_o) {
-      const { error: updateError } = await supabase
-        .from('games')
-        .update({
-          player_o: player.id,
-          status: 'in_progress'
-        })
-        .eq('id', game.id);
+    // Join existing game as player O
+    const { error: updateError } = await supabase
+      .from('games')
+      .update({
+        player_o: playerId,
+        status: 'in_progress'
+      })
+      .eq('id', game.id);
 
-      if (updateError) throw updateError;
-    }
+    if (updateError) throw updateError;
 
     return {
       gameId: game.id,
-      playerId: player.id
+      playerId
     };
   },
 
