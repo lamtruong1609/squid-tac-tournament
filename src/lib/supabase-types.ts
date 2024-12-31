@@ -51,8 +51,13 @@ export interface Database {
           board: string
           next_player: 'X' | 'O'
           winner: string | null
-          status: 'waiting' | 'in_progress' | 'completed'
+          status: 'waiting' | 'in_progress' | 'completed' | 'rps_tiebreaker'
           round: number
+          current_turn: number
+          turns_history: string
+          rps_history: string | null
+          player_x_ready: boolean
+          player_o_ready: boolean
         }
         Insert: {
           id?: string
@@ -63,8 +68,13 @@ export interface Database {
           board?: string
           next_player?: 'X' | 'O'
           winner?: string | null
-          status?: 'waiting' | 'in_progress' | 'completed'
+          status?: 'waiting' | 'in_progress' | 'completed' | 'rps_tiebreaker'
           round?: number
+          current_turn?: number
+          turns_history?: string
+          rps_history?: string | null
+          player_x_ready?: boolean
+          player_o_ready?: boolean
         }
         Update: {
           id?: string
@@ -75,8 +85,13 @@ export interface Database {
           board?: string
           next_player?: 'X' | 'O'
           winner?: string | null
-          status?: 'waiting' | 'in_progress' | 'completed'
+          status?: 'waiting' | 'in_progress' | 'completed' | 'rps_tiebreaker'
           round?: number
+          current_turn?: number
+          turns_history?: string
+          rps_history?: string | null
+          player_x_ready?: boolean
+          player_o_ready?: boolean
         }
       }
       players: {
