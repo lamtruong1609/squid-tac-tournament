@@ -6,6 +6,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 const loginSchema = z.object({
   playerName: z.string().min(2, {
@@ -21,6 +23,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm = ({ onSuccess }: LoginFormProps) => {
+  const navigate = useNavigate();
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -29,11 +32,32 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
     },
   });
 
+  const checkLastGameResult = async (playerId: string) => {
+    const { data: lastGame } = await supabase
+      .from('games')
+      .select('*')
+      .or(`player_x.eq.${playerId},player_o.eq.${playerId}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (lastGame && lastGame.winner && lastGame.winner !== playerId && lastGame.winner !== 'draw') {
+      navigate('/loser');
+      return true;
+    }
+    return false;
+  };
+
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     try {
-      await authService.loginPlayer(values.playerName, values.password);
+      const player = await authService.loginPlayer(values.playerName, values.password);
       toast.success("Login successful!");
-      onSuccess();
+      
+      // Check if player lost their last game
+      const isLoser = await checkLastGameResult(player.id);
+      if (!isLoser) {
+        onSuccess();
+      }
     } catch (error) {
       toast.error("Login failed", {
         description: error instanceof Error ? error.message : "Invalid credentials",
