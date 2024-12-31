@@ -17,10 +17,22 @@ import { TournamentBracket } from "../tournament/TournamentBracket";
 import { MatchPairing } from "../tournament/MatchPairing";
 import { TournamentActions } from "./TournamentActions";
 import { tournamentManagementService } from "@/services/tournamentManagementService";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const TournamentsList = () => {
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [maxPlayers, setMaxPlayers] = useState("8");
 
   const { data: tournaments, isLoading, refetch } = useQuery({
     queryKey: ["tournaments"],
@@ -38,11 +50,9 @@ export const TournamentsList = () => {
   const handleCreateTournament = async () => {
     setIsCreating(true);
     try {
-      const tournament = await tournamentManagementService.createTournament();
-      const players = await tournamentManagementService.getAvailablePlayers();
-      await tournamentManagementService.createInitialMatches(tournament, players);
-      
+      const tournament = await tournamentManagementService.createTournament(parseInt(maxPlayers));
       toast.success("Tournament created successfully");
+      setShowCreateDialog(false);
       refetch();
     } catch (error) {
       console.error('Tournament creation error:', error);
@@ -76,18 +86,51 @@ export const TournamentsList = () => {
             Create and manage your tournaments
           </p>
         </div>
-        <Button 
-          onClick={handleCreateTournament} 
-          disabled={isCreating}
-        >
-          {isCreating ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          {isCreating ? "Creating..." : "New Tournament"}
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Tournament
         </Button>
       </div>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Tournament</DialogTitle>
+            <DialogDescription>
+              Set up a new Squid Game tournament round
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="maxPlayers">Maximum Players</Label>
+              <Input
+                id="maxPlayers"
+                type="number"
+                value={maxPlayers}
+                onChange={(e) => setMaxPlayers(e.target.value)}
+                min="4"
+                max="32"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowCreateDialog(false)} variant="outline">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateTournament} 
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              {isCreating ? "Creating..." : "Create Tournament"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="rounded-md border">
         <Table>
