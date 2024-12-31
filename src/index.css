@@ -23,7 +23,6 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
-
     --radius: 0.5rem;
   }
 }
@@ -35,6 +34,8 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background: linear-gradient(to bottom right, #1a1f2c, #2d1f3d);
+    min-height: 100vh;
   }
 }
 
@@ -66,7 +67,7 @@
 
 .game-cell {
   @apply w-24 h-24 border-2 border-primary/50 flex items-center justify-center text-4xl font-bold cursor-pointer
-         transition-all duration-300 hover:border-primary hover:bg-primary/20;
+         transition-all duration-300 hover:border-primary hover:bg-primary/20 rounded-lg backdrop-blur-sm;
 }
 
 .game-cell.winner {

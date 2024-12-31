@@ -30,18 +30,23 @@ const GameBoard = ({ gameId, playerId, board, isMyTurn }: GameBoardProps) => {
   };
 
   return (
-    <div className="grid grid-cols-3 gap-2 max-w-[300px] mx-auto">
-      {board.map((cell, index) => (
-        <Button
-          key={index}
-          variant={cell ? "secondary" : "outline"}
-          className="h-24 text-3xl font-bold"
-          disabled={!isMyTurn || cell !== null}
-          onClick={() => handleMove(index)}
-        >
-          {cell}
-        </Button>
-      ))}
+    <div className="relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#FF0F7B]/20 to-[#F89B29]/20 rounded-lg blur-xl" />
+      <div className="relative grid grid-cols-3 gap-2 max-w-[400px] mx-auto p-6 rounded-lg bg-black/40 backdrop-blur-sm border border-primary/50">
+        {board.map((cell, index) => (
+          <div
+            key={index}
+            className={`game-cell ${!isMyTurn || cell !== null ? 'opacity-80' : 'hover:neon-border'}`}
+            onClick={() => isMyTurn && cell === null && handleMove(index)}
+          >
+            {cell && (
+              <span className={`text-5xl font-bold ${cell === 'X' ? 'text-[#FF0F7B]' : 'text-[#F89B29]'}`}>
+                {cell}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
