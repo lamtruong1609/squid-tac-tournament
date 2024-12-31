@@ -4,18 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-const ADMIN_PASSWORD = "admin123"; // In a real app, this should be properly secured
-
 const Admin = () => {
-  const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [password, setPassword] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
+    if (password === "admin123") {
       localStorage.setItem("isAdmin", "true");
       navigate("/admin/dashboard");
-      toast.success("Successfully logged in as admin");
+      toast.success("Login successful");
     } else {
       toast.error("Invalid password");
     }
@@ -25,18 +23,26 @@ const Admin = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-8 p-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground">Admin Login</h2>
-          <p className="mt-2 text-muted-foreground">Enter password to access admin dashboard</p>
+          <h2 className="text-2xl font-bold">Admin Login</h2>
+          <p className="text-muted-foreground mt-2">
+            Enter your password to access the admin dashboard
+          </p>
         </div>
+
         <form onSubmit={handleLogin} className="mt-8 space-y-6">
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter admin password"
-            className="w-full"
-          />
-          <Button type="submit" className="w-full">Login</Button>
+          <div>
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <Button type="submit" className="w-full">
+            Login
+          </Button>
         </form>
       </div>
     </div>
