@@ -43,11 +43,17 @@ export const tournamentManagementService = {
   },
 
   async startTournament(tournament: Tournament, players: Player[]) {
-    // Ensure we have a power of 2 number of players for proper brackets
-    const validPlayerCount = Math.pow(2, Math.floor(Math.log2(players.length)));
-    const selectedPlayers = players.slice(0, validPlayerCount);
+    // Update tournament status to in_progress
+    const { error: updateError } = await supabase
+      .from("tournaments")
+      .update({ status: "in_progress" })
+      .eq("id", tournament.id);
 
-    await bracketService.createInitialMatches(tournament.id, selectedPlayers);
-    return selectedPlayers.length;
+    if (updateError) throw updateError;
+
+    // Create initial matches using bracketService
+    await bracketService.createInitialMatches(tournament.id, players);
+
+    return players.length;
   }
 };

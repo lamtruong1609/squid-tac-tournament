@@ -1,7 +1,40 @@
 import { supabase } from "@/lib/supabase";
-import { Match, Player } from "./types";
+import { Player } from "./types";
 
 export const bracketService = {
+  async createInitialMatches(tournamentId: string, players: Player[]) {
+    // Shuffle players randomly for initial matchups
+    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+    
+    // Create first round matches
+    for (let i = 0; i < shuffledPlayers.length; i += 2) {
+      if (i + 1 < shuffledPlayers.length) {
+        await supabase
+          .from("games")
+          .insert({
+            tournament_id: tournamentId,
+            player_x: shuffledPlayers[i].id,
+            player_o: shuffledPlayers[i + 1].id,
+            board: JSON.stringify(Array(9).fill(null)),
+            next_player: 'X',
+            status: 'waiting',
+            round: 1,
+            turns_history: '[]'
+          });
+      }
+    }
+
+    // Update tournament status and player count
+    await supabase
+      .from("tournaments")
+      .update({
+        status: 'in_progress',
+        current_players: shuffledPlayers.length,
+        current_round: 1
+      })
+      .eq("id", tournamentId);
+  },
+
   async createNextRoundMatches(tournamentId: string, currentRound: number) {
     // Get winners from the current round
     const { data: currentMatches } = await supabase
@@ -28,7 +61,8 @@ export const bracketService = {
             board: JSON.stringify(Array(9).fill(null)),
             next_player: 'X',
             status: 'waiting',
-            round: nextRound
+            round: nextRound,
+            turns_history: '[]'
           });
       }
     }
@@ -48,38 +82,6 @@ export const bracketService = {
       .from("tournaments")
       .update({
         current_round: nextRound
-      })
-      .eq("id", tournamentId);
-  },
-
-  async createInitialMatches(tournamentId: string, players: Player[]) {
-    // Shuffle players randomly for initial matchups
-    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-    
-    // Create first round matches
-    for (let i = 0; i < shuffledPlayers.length; i += 2) {
-      if (i + 1 < shuffledPlayers.length) {
-        await supabase
-          .from("games")
-          .insert({
-            tournament_id: tournamentId,
-            player_x: shuffledPlayers[i].id,
-            player_o: shuffledPlayers[i + 1].id,
-            board: JSON.stringify(Array(9).fill(null)),
-            next_player: 'X',
-            status: 'waiting',
-            round: 1
-          });
-      }
-    }
-
-    // Update tournament status and player count
-    await supabase
-      .from("tournaments")
-      .update({
-        status: 'in_progress',
-        current_players: shuffledPlayers.length,
-        current_round: 1
       })
       .eq("id", tournamentId);
   }
