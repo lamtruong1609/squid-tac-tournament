@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import RPSGame from './RPSGame';
+import { RPSChoice } from '@/services/game/types';
 
 interface GameBoardProps {
   gameId: string;
@@ -82,7 +83,7 @@ const GameBoard = ({
     }
   };
 
-  const handleRPSChoice = async (choice: 'rock' | 'paper' | 'scissors') => {
+  const handleRPSChoice = async (choice: RPSChoice) => {
     try {
       const result = await gameService.playRPS(gameId, playerId, choice);
       
@@ -100,12 +101,14 @@ const GameBoard = ({
           }
         }, 1500);
       }
+      return result;
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to make choice",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
