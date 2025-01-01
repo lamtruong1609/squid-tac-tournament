@@ -26,20 +26,7 @@ export const TournamentActions = ({ tournament }: TournamentActionsProps) => {
   const handleStartTournament = async () => {
     try {
       const players = await tournamentManagementService.getAvailablePlayers();
-      
-      // Only take the first max_players number of players
-      const selectedPlayers = players.slice(0, tournament.max_players);
-      await tournamentManagementService.createInitialMatches(tournament, selectedPlayers);
-
-      const { error } = await supabase
-        .from("tournaments")
-        .update({ 
-          status: "in_progress",
-          current_players: selectedPlayers.length
-        })
-        .eq("id", tournament.id);
-
-      if (error) throw error;
+      const playerCount = await tournamentManagementService.startTournament(tournament, players);
 
       toast.success("Tournament started successfully");
       await queryClient.invalidateQueries({ queryKey: ["tournaments"] });
