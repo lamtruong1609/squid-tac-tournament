@@ -61,7 +61,7 @@ export const playRPS = async (
       gameWinner = game.player_o;
     }
 
-    // Update game state
+    // Update game state with the round result
     const { error: updateError } = await supabase
       .from('games')
       .update({
@@ -85,11 +85,15 @@ export const playRPS = async (
     return {
       status: gameStatus,
       winner: gameWinner,
-      rpsHistory
+      rpsHistory,
+      currentRoundResult: {
+        winner: roundWinner,
+        choices: currentRoundChoices
+      }
     };
   }
 
-  // If waiting for other player's choice
+  // If still waiting for other player's choice, just update the history
   const { error: updateError } = await supabase
     .from('games')
     .update({
@@ -101,6 +105,7 @@ export const playRPS = async (
 
   return {
     status: 'waiting_for_opponent',
-    rpsHistory
+    rpsHistory,
+    currentRoundChoices
   };
 };

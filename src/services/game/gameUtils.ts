@@ -14,20 +14,20 @@ export const calculateWinner = (board: (string | null)[]) => {
 };
 
 export const calculateRPSWinner = (
-  choice1: string,
-  choice2: string,
-  player1Id: string,
-  player2Id: string
-): string | null => {
-  if (choice1 === choice2) return null;
-  
-  if (
-    (choice1 === 'rock' && choice2 === 'scissors') ||
-    (choice1 === 'paper' && choice2 === 'rock') ||
-    (choice1 === 'scissors' && choice2 === 'paper')
-  ) {
-    return player1Id;
+  p1Choice: 'rock' | 'paper' | 'scissors',
+  p2Choice: 'rock' | 'paper' | 'scissors',
+  p1Id: string,
+  p2Id: string
+): string | 'draw' => {
+  if (p1Choice === p2Choice) {
+    return 'draw';
   }
-  
-  return player2Id;
+
+  const winningCombos = {
+    rock: 'scissors',
+    paper: 'rock',
+    scissors: 'paper'
+  };
+
+  return winningCombos[p1Choice] === p2Choice ? p1Id : p2Id;
 };
