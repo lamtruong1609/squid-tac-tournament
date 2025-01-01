@@ -36,13 +36,14 @@ export const PlayerRegistrationForm = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       // Check if player exists
-      const { data: existingPlayer } = await supabase
+      const { data: existingPlayers, error: checkError } = await supabase
         .from('players')
         .select('id')
-        .eq('name', values.playerName)
-        .single();
+        .eq('name', values.playerName);
 
-      if (existingPlayer) {
+      if (checkError) throw checkError;
+
+      if (existingPlayers && existingPlayers.length > 0) {
         toast.error("Player already exists. Please log in.");
         return;
       }
@@ -57,7 +58,7 @@ export const PlayerRegistrationForm = () => {
         .eq('status', 'waiting')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const tournamentId = activeTournament?.id;
 

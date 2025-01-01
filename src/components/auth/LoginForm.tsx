@@ -50,14 +50,14 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     try {
-      const { data: player, error } = await supabase
+      const { data: players, error } = await supabase
         .from('players')
         .select('id, name, password')
-        .eq('name', values.playerName)
-        .maybeSingle();
+        .eq('name', values.playerName);
 
       if (error) throw error;
       
+      const player = players?.[0];
       if (!player) {
         toast.error("Player not found");
         return;
