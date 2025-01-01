@@ -14,60 +14,84 @@ const Game = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Poll game status every 3 seconds
-  const { data: game, isLoading: gameLoading } = useQuery({
+  // Poll game status every 3 seconds with retry logic
+  const { data: game, isLoading: gameLoading, error } = useQuery({
     queryKey: ['game', gameId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('games')
-        .select('*')
-        .eq('id', gameId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', gameId)
+          .single();
 
-      if (error) {
-        console.error('Error fetching game:', error);
+        if (error) {
+          console.error('Error fetching game:', error);
+          throw error;
+        }
+
+        // If both players are ready and game is in waiting status, start the game
+        if (data.player_x_ready && data.player_o_ready && data.status === 'waiting') {
+          const { error: updateError } = await supabase
+            .from('games')
+            .update({ 
+              status: 'in_progress',
+              turns_history: '[]'
+            })
+            .eq('id', gameId);
+
+          if (!updateError) {
+            toast({
+              title: "Game Starting!",
+              description: "Both players are ready. The game will begin now.",
+            });
+            return { ...data, status: 'in_progress', turns_history: '[]' };
+          }
+        }
+        return data;
+      } catch (error) {
+        console.error('Network error:', error);
+        toast({
+          title: "Connection Error",
+          description: "Having trouble connecting to the game. Retrying...",
+          variant: "destructive",
+        });
         throw error;
       }
-
-      // If both players are ready and game is in waiting status, start the game
-      if (data.player_x_ready && data.player_o_ready && data.status === 'waiting') {
-        const { error: updateError } = await supabase
-          .from('games')
-          .update({ 
-            status: 'in_progress',
-            turns_history: '[]'
-          })
-          .eq('id', gameId);
-
-        if (!updateError) {
-          toast({
-            title: "Game Starting!",
-            description: "Both players are ready. The game will begin now.",
-          });
-          return { ...data, status: 'in_progress', turns_history: '[]' };
-        }
-      }
-      return data;
     },
     refetchInterval: 3000,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const { data: players, isLoading: playersLoading } = useQuery({
     queryKey: ['players', game?.player_x, game?.player_o],
     enabled: !!game,
     queryFn: async () => {
-      const playerIds = [game.player_x, game.player_o].filter(Boolean);
-      const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .in('id', playerIds);
+      try {
+        const playerIds = [game.player_x, game.player_o].filter(Boolean);
+        const { data, error } = await supabase
+          .from('players')
+          .select('*')
+          .in('id', playerIds);
 
-      if (error) {
-        console.error('Error fetching players:', error);
+        if (error) {
+          console.error('Error fetching players:', error);
+          throw error;
+        }
+        return data;
+      } catch (error) {
+        console.error('Network error fetching players:', error);
+        toast({
+          title: "Connection Error",
+          description: "Having trouble loading player data. Retrying...",
+          variant: "destructive",
+        });
         throw error;
       }
-      return data;
     },
+    retry: 3,
+    retryDelay: 1000,
   });
 
   useEffect(() => {
@@ -77,10 +101,27 @@ const Game = () => {
     }
   }, []);
 
-  const isLoading = gameLoading || playersLoading;
-
-  if (isLoading) {
+  // Show loading state during initial load or retries
+  if (gameLoading || playersLoading) {
     return <GameStatus status="loading" />;
+  }
+
+  // Show error state if all retries failed
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-destructive text-center space-y-4">
+          <p>Unable to connect to the game.</p>
+          <p className="text-sm text-muted-foreground">Please check your internet connection and try again.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!game) {
