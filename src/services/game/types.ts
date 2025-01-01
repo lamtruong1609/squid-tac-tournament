@@ -5,8 +5,13 @@ export interface GameTurn {
 
 export type RPSChoice = 'rock' | 'paper' | 'scissors';
 
-export interface GameState {
-  status: string;
-  winner: string | null;
-  turnsHistory: GameTurn[];
+export interface RPSRoundResult {
+  winner: string | 'draw';
+  choices: Record<string, RPSChoice>;
+}
+
+export interface RPSGameResult {
+  status: 'in_progress' | 'completed' | 'rps_tiebreaker';
+  winner?: string;
+  currentRoundResult?: RPSRoundResult;
 }

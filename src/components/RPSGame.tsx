@@ -4,25 +4,27 @@ import { Hand, Scroll, Scissors } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { RPSChoice, RPSRoundResult } from '@/services/game/types';
 
 interface RPSGameProps {
   gameId: string;
   playerId: string;
   isMyTurn: boolean;
   opponent: any;
-  onRPSChoice: (choice: 'rock' | 'paper' | 'scissors') => Promise<void>;
+  onRPSChoice: (choice: RPSChoice) => Promise<{
+    status: 'in_progress' | 'completed' | 'rps_tiebreaker';
+    winner?: string;
+    currentRoundResult?: RPSRoundResult;
+  }>;
 }
 
 const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedChoice, setSelectedChoice] = useState<'rock' | 'paper' | 'scissors' | null>(null);
-  const [roundResult, setRoundResult] = useState<{
-    winner: string | 'draw';
-    choices: Record<string, 'rock' | 'paper' | 'scissors'>;
-  } | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<RPSChoice | null>(null);
+  const [roundResult, setRoundResult] = useState<RPSRoundResult | null>(null);
 
-  const handleChoice = async (choice: 'rock' | 'paper' | 'scissors') => {
+  const handleChoice = async (choice: RPSChoice) => {
     try {
       setSelectedChoice(choice);
       const result = await onRPSChoice(choice);
