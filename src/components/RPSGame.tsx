@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { RPSChoice as RPSChoiceType, RPSRoundResult } from '@/services/game/types';
 import RPSChoice from './rps/RPSChoice';
 import RPSResult from './rps/RPSResult';
+import { supabase } from '@/lib/supabase';
 
 interface RPSGameProps {
   gameId: string;
@@ -25,6 +26,59 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const [roundResult, setRoundResult] = useState<RPSRoundResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+
+  // Subscribe to game updates
+  useEffect(() => {
+    const subscription = supabase
+      .channel(`game:${gameId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'games',
+          filter: `id=eq.${gameId}`,
+        },
+        async (payload) => {
+          const newData = payload.new as any;
+          if (newData.rps_history) {
+            try {
+              const rpsHistory = JSON.parse(newData.rps_history);
+              const currentRound = rpsHistory[rpsHistory.length - 1];
+              
+              if (currentRound) {
+                setRoundResult({
+                  winner: currentRound.winner || null,
+                  choices: currentRound
+                });
+
+                if (currentRound.winner) {
+                  setIsWaitingForOpponent(false);
+                }
+
+                if (newData.status === 'completed') {
+                  toast({
+                    title: newData.winner === playerId ? "You won!" : "Opponent won!",
+                    description: "Game Over!",
+                  });
+                  
+                  setTimeout(() => {
+                    navigate(newData.winner === playerId ? '/winner' : '/loser');
+                  }, 1500);
+                }
+              }
+            } catch (error) {
+              console.error('Error parsing RPS history:', error);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [gameId, playerId, navigate, toast]);
 
   useEffect(() => {
     if (!selectedChoice && timeLeft > 0) {
@@ -56,17 +110,6 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
         
         if (result.currentRoundResult.choices[opponent.id]) {
           setIsWaitingForOpponent(false);
-        }
-        
-        if (result.status === 'completed') {
-          toast({
-            title: result.winner === playerId ? "You won!" : "Opponent won!",
-            description: "Game Over!",
-          });
-          
-          setTimeout(() => {
-            navigate(result.winner === playerId ? '/winner' : '/loser');
-          }, 1500);
         }
       }
     } catch (error) {
