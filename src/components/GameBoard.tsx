@@ -3,8 +3,10 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { gameService } from '@/services/game/gameService';
 import { Badge } from './ui/badge';
-import { Hand, Scroll, Scissors } from 'lucide-react';
+import { Hand, Scroll, Scissors, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 interface GameBoardProps {
   gameId: string;
@@ -14,6 +16,8 @@ interface GameBoardProps {
   currentTurn: number;
   gameStatus: string;
   turnsHistory: any[];
+  players: any[];
+  currentPlayerSymbol: 'X' | 'O';
 }
 
 const GameBoard = ({ 
@@ -23,9 +27,27 @@ const GameBoard = ({
   isMyTurn, 
   currentTurn,
   gameStatus,
-  turnsHistory 
+  turnsHistory,
+  players,
+  currentPlayerSymbol
 }: GameBoardProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const currentPlayer = players?.find(p => p.id === playerId);
+  const opponent = players?.find(p => p.id !== playerId);
+
+  const getPlayerStats = (player: any) => {
+    if (!player) return { wins: 0, losses: 0, draws: 0, ratio: '0%' };
+    const total = player.wins + player.losses;
+    const ratio = total > 0 ? Math.round((player.wins / total) * 100) : 0;
+    return {
+      wins: player.wins,
+      losses: player.losses,
+      draws: player.draws,
+      ratio: `${ratio}%`
+    };
+  };
 
   const handleMove = async (position: number) => {
     try {
@@ -33,9 +55,18 @@ const GameBoard = ({
       
       if (result.status === 'completed') {
         toast({
-          title: result.winner === playerId ? "You won!" : "You lost!",
+          title: result.winner === playerId ? `You won!` : `${opponent?.name || 'Opponent'} won!`,
           description: "Game Over",
         });
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          if (result.winner === playerId) {
+            navigate('/winner');
+          } else {
+            navigate('/loser');
+          }
+        }, 1500);
       } else if (result.status === 'rps_tiebreaker') {
         toast({
           title: "It's a tie!",
@@ -57,9 +88,18 @@ const GameBoard = ({
       
       if (result.status === 'completed') {
         toast({
-          title: result.winner === playerId ? "You won!" : "You lost!",
+          title: result.winner === playerId ? `You won!` : `${opponent?.name || 'Opponent'} won!`,
           description: "Game Over",
         });
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          if (result.winner === playerId) {
+            navigate('/winner');
+          } else {
+            navigate('/loser');
+          }
+        }, 1500);
       } else {
         toast({
           title: "Choice made!",
@@ -75,18 +115,43 @@ const GameBoard = ({
     }
   };
 
+  const playerImage = currentPlayerSymbol === 'X' 
+    ? "/lovable-uploads/d1b808b8-eee4-46ca-9eed-2716706fb7a0.png"
+    : "/lovable-uploads/302a852d-9e1b-444e-817f-c4395f8e9379.png";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Badge variant="outline" className="text-lg">
           Match {currentTurn}/3
         </Badge>
-        <div className="flex gap-2">
-          {turnsHistory.map((turn, index) => (
-            <Badge key={index} variant={turn.winner === playerId ? "default" : turn.winner === 'draw' ? "secondary" : "destructive"}>
-              {turn.winner === playerId ? 'Won' : turn.winner === 'draw' ? 'Draw' : 'Lost'}
-            </Badge>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            {turnsHistory.map((turn, index) => (
+              <Badge 
+                key={index} 
+                variant={turn.winner === playerId ? "default" : turn.winner === 'draw' ? "secondary" : "destructive"}
+              >
+                {turn.winner === playerId 
+                  ? `Won (${currentPlayer?.name})` 
+                  : turn.winner === 'draw' 
+                    ? 'Draw' 
+                    : `Lost (${opponent?.name})`}
+              </Badge>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 bg-black/20 p-2 rounded-lg">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={playerImage} alt={currentPlayer?.name} />
+              <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+            </Avatar>
+            <div className="text-sm">
+              <div className="font-medium">{currentPlayer?.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {getPlayerStats(currentPlayer).wins}W {getPlayerStats(currentPlayer).losses}L ({getPlayerStats(currentPlayer).ratio})
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

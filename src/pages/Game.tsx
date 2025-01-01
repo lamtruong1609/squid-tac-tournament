@@ -35,7 +35,7 @@ const Game = () => {
           .from('games')
           .update({ 
             status: 'in_progress',
-            turns_history: '[]' // Initialize turns_history as empty array
+            turns_history: '[]'
           })
           .eq('id', gameId);
 
@@ -77,28 +77,6 @@ const Game = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (game?.status === 'completed' && currentPlayerId) {
-      if (game.winner === 'draw') {
-        toast({
-          title: "It's a Draw!",
-          description: "Good game!",
-        });
-      } else if (game.winner === currentPlayerId) {
-        toast({
-          title: "Congratulations!",
-          description: "You've won the game!",
-        });
-      } else {
-        toast({
-          title: "Better luck next time!",
-          description: "Don't give up!",
-        });
-      }
-      navigate('/');
-    }
-  }, [game?.status, game?.winner, currentPlayerId, navigate, toast]);
-
   const isLoading = gameLoading || playersLoading;
 
   if (isLoading) {
@@ -122,9 +100,8 @@ const Game = () => {
   // Safely parse turns history with fallback to empty array
   const turnsHistory = (() => {
     try {
-      // Ensure turns_history is never undefined or null
       const historyStr = game.turns_history || '[]';
-      console.log('Raw turns_history:', historyStr); // Debug log
+      console.log('Raw turns_history:', historyStr);
       return JSON.parse(historyStr);
     } catch (e) {
       console.error('Error parsing turns history:', e);
@@ -137,6 +114,8 @@ const Game = () => {
     (currentPlayerId === game.player_o && game.next_player === 'O')
   );
 
+  const currentPlayerSymbol = currentPlayerId === game.player_x ? 'X' : 'O';
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <GameHeader 
@@ -145,7 +124,7 @@ const Game = () => {
         currentPlayerId={currentPlayerId || ''}
       />
 
-      {(game.status === 'waiting' || !game.player_o) && (
+      {(game.status === 'waiting' || !game.player_o) ? (
         <WaitingPlayers 
           players={players?.map(p => ({
             id: p.id,
@@ -155,17 +134,17 @@ const Game = () => {
           gameId={game.id}
           currentPlayerId={currentPlayerId || ''}
         />
-      )}
-
-      {game.status === 'in_progress' && currentPlayerId && (
+      ) : (
         <GameBoard
           gameId={game.id}
-          playerId={currentPlayerId}
+          playerId={currentPlayerId || ''}
           board={board}
           isMyTurn={isMyTurn}
           currentTurn={game.current_turn || 1}
           gameStatus={game.status}
           turnsHistory={turnsHistory}
+          players={players || []}
+          currentPlayerSymbol={currentPlayerSymbol}
         />
       )}
     </div>

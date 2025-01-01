@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import { bracketService } from "./bracketService";
-import { Tournament, Player } from "./types";
 
 export const tournamentManagementService = {
   async createTournament(maxPlayers: number = 8) {
@@ -42,18 +41,28 @@ export const tournamentManagementService = {
     return players;
   },
 
-  async startTournament(tournament: Tournament, players: Player[]) {
-    // Update tournament status to in_progress
-    const { error: updateError } = await supabase
-      .from("tournaments")
-      .update({ status: "in_progress" })
-      .eq("id", tournament.id);
+  async startTournament(tournament: any, players: any[]) {
+    try {
+      // Update tournament status to in_progress
+      const { error: updateError } = await supabase
+        .from("tournaments")
+        .update({ 
+          status: "in_progress",
+          current_players: players.length,
+          current_round: 1,
+          is_final_round: players.length <= 2
+        })
+        .eq("id", tournament.id);
 
-    if (updateError) throw updateError;
+      if (updateError) throw updateError;
 
-    // Create initial matches using bracketService
-    await bracketService.createInitialMatches(tournament.id, players);
+      // Create initial matches using bracketService
+      await bracketService.createInitialMatches(tournament.id, players);
 
-    return players.length;
+      return players.length;
+    } catch (error) {
+      console.error('Error in startTournament:', error);
+      throw error;
+    }
   }
 };
