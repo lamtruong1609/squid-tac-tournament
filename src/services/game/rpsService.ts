@@ -1,13 +1,12 @@
 import { supabase } from '@/lib/supabase';
-import { calculateRPSWinner } from './gameUtils';
 import { updatePlayerStats } from '../playerStats';
-import { RPSChoice } from './types';
+import { RPSChoice, RPSGameResult, GameStatus } from './types';
 
 export const playRPS = async (
   gameId: string,
   playerId: string,
   choice: RPSChoice
-) => {
+): Promise<RPSGameResult> => {
   const { data: game, error: gameError } = await supabase
     .from('games')
     .select('*')
@@ -20,39 +19,30 @@ export const playRPS = async (
     throw new Error('Game is not in RPS tiebreaker mode');
   }
 
-  // Parse existing RPS history or initialize new round
   const rpsHistory = game.rps_history ? JSON.parse(game.rps_history) : [];
   const currentRound = rpsHistory.length;
-  
-  // Get or create current round
-  let currentRoundChoices = rpsHistory[currentRound] || {};
-  
-  // Add player's choice to current round
-  currentRoundChoices[playerId] = choice;
-  
-  // Update the history with the current round
+
+  // Add player's choice to history
+  const currentRoundChoices = {
+    ...rpsHistory[currentRound],
+    [playerId]: choice
+  };
   rpsHistory[currentRound] = currentRoundChoices;
 
   // If both players have made their choice
   if (Object.keys(currentRoundChoices).length === 2) {
-    const roundWinner = calculateRPSWinner(
-      currentRoundChoices[game.player_x],
-      currentRoundChoices[game.player_o],
-      game.player_x,
-      game.player_o
-    );
-
-    // Add winner to current round
-    rpsHistory[currentRound].winner = roundWinner;
+    const p1Choice = currentRoundChoices[game.player_x];
+    const p2Choice = currentRoundChoices[game.player_o];
+    
+    let roundWinner = determineRoundWinner(p1Choice, p2Choice, game.player_x, game.player_o);
 
     // Count wins in RPS
-    const p1Wins = rpsHistory.filter(r => r.winner === game.player_x).length;
-    const p2Wins = rpsHistory.filter(r => r.winner === game.player_o).length;
+    const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
+    const p2Wins = rpsHistory.filter((r: any) => r.winner === game.player_o).length;
 
-    let gameStatus = 'rps_tiebreaker';
-    let gameWinner = null;
+    let gameStatus: GameStatus = 'rps_tiebreaker';
+    let gameWinner: string | undefined;
 
-    // Check if someone has won best of 3
     if (p1Wins >= 2) {
       gameStatus = 'completed';
       gameWinner = game.player_x;
@@ -61,7 +51,7 @@ export const playRPS = async (
       gameWinner = game.player_o;
     }
 
-    // Update game state with the round result
+    // Update game state
     const { error: updateError } = await supabase
       .from('games')
       .update({
@@ -74,7 +64,7 @@ export const playRPS = async (
     if (updateError) throw updateError;
 
     // If game is completed after RPS, update player stats
-    if (gameStatus === 'completed') {
+    if (gameStatus === 'completed' && gameWinner) {
       await updatePlayerStats(
         game.player_x,
         game.player_o,
@@ -85,7 +75,6 @@ export const playRPS = async (
     return {
       status: gameStatus,
       winner: gameWinner,
-      rpsHistory,
       currentRoundResult: {
         winner: roundWinner,
         choices: currentRoundChoices
@@ -93,7 +82,7 @@ export const playRPS = async (
     };
   }
 
-  // If still waiting for other player's choice, just update the history
+  // If waiting for other player's choice
   const { error: updateError } = await supabase
     .from('games')
     .update({
@@ -104,8 +93,29 @@ export const playRPS = async (
   if (updateError) throw updateError;
 
   return {
-    status: 'waiting_for_opponent',
-    rpsHistory,
-    currentRoundChoices
+    status: 'in_progress',
+    currentRoundResult: {
+      winner: 'draw',
+      choices: currentRoundChoices
+    }
   };
 };
+
+function determineRoundWinner(
+  p1Choice: RPSChoice,
+  p2Choice: RPSChoice,
+  player1Id: string,
+  player2Id: string
+): string | 'draw' {
+  if (p1Choice === p2Choice) return 'draw';
+  
+  if (
+    (p1Choice === 'rock' && p2Choice === 'scissors') ||
+    (p1Choice === 'paper' && p2Choice === 'rock') ||
+    (p1Choice === 'scissors' && p2Choice === 'paper')
+  ) {
+    return player1Id;
+  }
+  
+  return player2Id;
+}

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { updatePlayerStats } from '../playerStats';
-import { calculateWinner, isBoardFull } from './boardUtils';
-import { GameState, GameTurn, RPSChoice } from './types';
+import { calculateWinner } from './gameUtils';
+import { GameTurn, RPSChoice, RPSGameResult } from './types';
 import { playRPS } from './rpsService';
 
 export const gameService = {
@@ -47,7 +47,7 @@ export const gameService = {
     
     // Calculate winner for this board
     const turnWinner = calculateWinner(board);
-    const isDraw = !turnWinner && isBoardFull(board);
+    const isDraw = !turnWinner && board.every(cell => cell !== null);
     
     // Parse existing turns history
     const turnsHistory: GameTurn[] = (() => {
