@@ -20,14 +20,17 @@ export const playRPS = async (
     throw new Error('Game is not in RPS tiebreaker mode');
   }
 
+  // Parse existing RPS history or initialize new round
   const rpsHistory = game.rps_history ? JSON.parse(game.rps_history) : [];
   const currentRound = rpsHistory.length;
-
-  // Add player's choice to history
-  const currentRoundChoices = {
-    ...rpsHistory[currentRound],
-    [playerId]: choice
-  };
+  
+  // Get or create current round
+  let currentRoundChoices = rpsHistory[currentRound] || {};
+  
+  // Add player's choice to current round
+  currentRoundChoices[playerId] = choice;
+  
+  // Update the history with the current round
   rpsHistory[currentRound] = currentRoundChoices;
 
   // If both players have made their choice
@@ -39,6 +42,7 @@ export const playRPS = async (
       game.player_o
     );
 
+    // Add winner to current round
     rpsHistory[currentRound].winner = roundWinner;
 
     // Count wins in RPS
@@ -48,6 +52,7 @@ export const playRPS = async (
     let gameStatus = 'rps_tiebreaker';
     let gameWinner = null;
 
+    // Check if someone has won best of 3
     if (p1Wins >= 2) {
       gameStatus = 'completed';
       gameWinner = game.player_x;

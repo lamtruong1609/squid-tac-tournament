@@ -3,10 +3,11 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { gameService } from '@/services/game/gameService';
 import { Badge } from './ui/badge';
-import { Hand, Scroll, Scissors, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import RPSGame from './RPSGame';
 
 interface GameBoardProps {
   gameId: string;
@@ -59,7 +60,6 @@ const GameBoard = ({
           description: "Game Over",
         });
         
-        // Redirect after a short delay
         setTimeout(() => {
           if (result.winner === playerId) {
             navigate('/winner');
@@ -92,7 +92,6 @@ const GameBoard = ({
           description: "Game Over",
         });
         
-        // Redirect after a short delay
         setTimeout(() => {
           if (result.winner === playerId) {
             navigate('/winner');
@@ -100,11 +99,6 @@ const GameBoard = ({
             navigate('/loser');
           }
         }, 1500);
-      } else {
-        toast({
-          title: "Choice made!",
-          description: "Waiting for opponent's choice...",
-        });
       }
     } catch (error) {
       toast({
@@ -156,79 +150,13 @@ const GameBoard = ({
       </div>
 
       {gameStatus === 'rps_tiebreaker' ? (
-        <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="flex flex-col items-center gap-8 p-8 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl backdrop-blur-lg border border-pink-500/30"
-        >
-          <motion.h3 
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="text-3xl font-bold text-pink-500 text-center"
-          >
-            🦑 Squid Game: Final Round 🦑
-          </motion.h3>
-          
-          <div className="grid grid-cols-3 gap-8 w-full max-w-2xl">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                onClick={() => handleRPSChoice('rock')}
-                disabled={!isMyTurn}
-                className="w-full h-32 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Hand className="h-12 w-12" />
-                  <span className="text-lg font-bold">Rock</span>
-                </div>
-              </Button>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                onClick={() => handleRPSChoice('paper')}
-                disabled={!isMyTurn}
-                className="w-full h-32 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Scroll className="h-12 w-12" />
-                  <span className="text-lg font-bold">Paper</span>
-                </div>
-              </Button>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                onClick={() => handleRPSChoice('scissors')}
-                disabled={!isMyTurn}
-                className="w-full h-32 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Scissors className="h-12 w-12" />
-                  <span className="text-lg font-bold">Scissors</span>
-                </div>
-              </Button>
-            </motion.div>
-          </div>
-
-          {!isMyTurn && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xl text-pink-400 mt-4"
-            >
-              Waiting for opponent's choice...
-            </motion.div>
-          )}
-        </motion.div>
+        <RPSGame
+          gameId={gameId}
+          playerId={playerId}
+          isMyTurn={isMyTurn}
+          opponent={opponent}
+          onRPSChoice={handleRPSChoice}
+        />
       ) : (
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-br from-[#FF0F7B]/20 to-[#F89B29]/20 rounded-lg blur-xl" />
