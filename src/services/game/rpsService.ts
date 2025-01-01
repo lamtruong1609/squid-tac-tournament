@@ -8,20 +8,17 @@ const determineWinner = (
   player1Id: string,
   player2Id: string
 ): string | 'draw' => {
-  // If choices are the same, it's a draw
   if (p1Choice === p2Choice) {
     return 'draw';
   }
 
-  // Define winning combinations
-  const winningMoves = {
+  const winningCombos: Record<RPSChoice, RPSChoice> = {
     rock: 'scissors',
     paper: 'rock',
     scissors: 'paper'
   };
 
-  // Check if player 1's choice beats player 2's choice
-  return winningMoves[p1Choice] === p2Choice ? player1Id : player2Id;
+  return winningCombos[p1Choice] === p2Choice ? player1Id : player2Id;
 };
 
 export const playRPS = async (
@@ -29,7 +26,6 @@ export const playRPS = async (
   playerId: string,
   choice: RPSChoice
 ): Promise<RPSGameResult> => {
-  // Get current game state
   const { data: game, error: gameError } = await supabase
     .from('games')
     .select('*')
@@ -58,22 +54,15 @@ export const playRPS = async (
   // Check if both players have made their choices
   const bothPlayersChosen = currentRoundChoices[game.player_x] && currentRoundChoices[game.player_o];
 
-  // Update game state with the new choice
-  const { error: updateError } = await supabase
-    .from('games')
-    .update({
-      rps_history: JSON.stringify(rpsHistory)
-    })
-    .eq('id', gameId);
-
-  if (updateError) throw updateError;
-
-  // If both players have chosen, determine the winner
   if (bothPlayersChosen) {
-    const p1Choice = currentRoundChoices[game.player_x];
-    const p2Choice = currentRoundChoices[game.player_o];
-    
-    const roundWinner = determineWinner(p1Choice, p2Choice, game.player_x, game.player_o);
+    const roundWinner = determineWinner(
+      currentRoundChoices[game.player_x],
+      currentRoundChoices[game.player_o],
+      game.player_x,
+      game.player_o
+    );
+
+    // Add winner to current round
     rpsHistory[currentRound].winner = roundWinner;
 
     // Count wins for each player
@@ -93,7 +82,7 @@ export const playRPS = async (
     }
 
     // Update game state with round result
-    const { error: finalUpdateError } = await supabase
+    const { error: updateError } = await supabase
       .from('games')
       .update({
         status: gameStatus,
@@ -102,7 +91,7 @@ export const playRPS = async (
       })
       .eq('id', gameId);
 
-    if (finalUpdateError) throw finalUpdateError;
+    if (updateError) throw updateError;
 
     // Update player stats if game is completed
     if (gameStatus === 'completed' && gameWinner) {
@@ -123,7 +112,16 @@ export const playRPS = async (
     };
   }
 
-  // Return in-progress status if waiting for opponent
+  // If not both players have chosen yet, just update the history
+  const { error: updateError } = await supabase
+    .from('games')
+    .update({
+      rps_history: JSON.stringify(rpsHistory)
+    })
+    .eq('id', gameId);
+
+  if (updateError) throw updateError;
+
   return {
     status: 'in_progress',
     currentRoundResult: {

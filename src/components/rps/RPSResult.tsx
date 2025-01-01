@@ -21,14 +21,18 @@ const RPSResult = ({ selectedChoice, roundResult, isWaitingForOpponent, opponent
     if (roundResult.winner === 'draw') {
       return "It's a draw! Next round...";
     }
-    return roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";
+
+    const opponentChoice = roundResult.choices[opponentId];
+    const resultMessage = roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";
+    
+    return `${resultMessage} (${selectedChoice} vs ${opponentChoice})`;
   };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="text-xl text-center space-y-2"
+      className="text-xl text-center space-y-4 p-4 bg-black/20 rounded-lg backdrop-blur-sm"
     >
       <div className="text-green-400">
         You chose {selectedChoice}!
