@@ -107,7 +107,26 @@ const Game = () => {
     return <GameStatus status="not-found" />;
   }
 
-  const board = JSON.parse(game.board);
+  // Safely parse board with fallback to empty board
+  const board = (() => {
+    try {
+      return game.board ? JSON.parse(game.board) : Array(9).fill(null);
+    } catch (e) {
+      console.error('Error parsing game board:', e);
+      return Array(9).fill(null);
+    }
+  })();
+
+  // Safely parse turns history with fallback to empty array
+  const turnsHistory = (() => {
+    try {
+      return game.turns_history ? JSON.parse(game.turns_history) : [];
+    } catch (e) {
+      console.error('Error parsing turns history:', e);
+      return [];
+    }
+  })();
+
   const isMyTurn = (
     (currentPlayerId === game.player_x && game.next_player === 'X') ||
     (currentPlayerId === game.player_o && game.next_player === 'O')
@@ -141,7 +160,7 @@ const Game = () => {
           isMyTurn={isMyTurn}
           currentTurn={game.current_turn || 1}
           gameStatus={game.status}
-          turnsHistory={JSON.parse(game.turns_history || '[]')}
+          turnsHistory={turnsHistory}
         />
       )}
     </div>
