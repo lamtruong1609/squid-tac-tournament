@@ -32,27 +32,26 @@ export const RPSGameState = ({ gameId, playerId, onGameStateUpdate }: RPSGameSta
               const rpsHistory = JSON.parse(newData.rps_history);
               const currentRound = rpsHistory[rpsHistory.length - 1];
               
-              // Only update if we have a valid current round
               if (currentRound) {
                 // Check if both players have made their choices
-                const bothPlayersChosen = Object.keys(currentRound).length >= 2;
+                const bothPlayersChosen = Object.keys(currentRound).length >= 3; // Including winner field
                 
-                // Update the game state regardless of completion
+                // Update the game state
                 onGameStateUpdate(currentRound);
 
-                // Handle game completion
-                if (newData.status === 'completed' && bothPlayersChosen) {
-                  const isWinner = newData.winner === playerId;
+                // Only handle completion if both players have chosen and there's a winner
+                if (newData.status === 'completed' && bothPlayersChosen && currentRound.winner) {
+                  const isWinner = currentRound.winner === playerId;
                   
                   toast({
-                    title: isWinner ? "You won!" : "Opponent won!",
+                    title: isWinner ? "You won the tiebreaker!" : "Opponent won the tiebreaker!",
                     description: "Game Over!",
                   });
                   
                   // Give users time to see the final result before redirecting
                   setTimeout(() => {
                     navigate(isWinner ? '/winner' : '/loser');
-                  }, 2000);
+                  }, 3000);
                 }
               }
             } catch (error) {
