@@ -9,7 +9,7 @@ const determineWinner = (
   player2Id: string
 ): string | 'draw' => {
   if (p1Choice === p2Choice) {
-    return 'draw';
+    return player1Id; // In case of draw in final match, player X wins
   }
 
   const winningCombos: Record<RPSChoice, RPSChoice> = {
@@ -65,21 +65,9 @@ export const playRPS = async (
     // Add winner to current round
     rpsHistory[currentRound].winner = roundWinner;
 
-    // Count wins for each player
-    const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
-    const p2Wins = rpsHistory.filter((r: any) => r.winner === game.player_o).length;
-
-    let gameStatus: 'rps_tiebreaker' | 'completed' = 'rps_tiebreaker';
-    let gameWinner = null;
-
-    // Best of 3 rounds
-    if (p1Wins >= 2) {
-      gameStatus = 'completed';
-      gameWinner = game.player_x;
-    } else if (p2Wins >= 2) {
-      gameStatus = 'completed';
-      gameWinner = game.player_o;
-    }
+    // In final tiebreaker, one round determines the winner
+    const gameStatus = 'completed';
+    const gameWinner = roundWinner;
 
     // Update game state with round result
     const { error: updateError } = await supabase
@@ -93,14 +81,12 @@ export const playRPS = async (
 
     if (updateError) throw updateError;
 
-    // Update player stats if game is completed
-    if (gameStatus === 'completed' && gameWinner) {
-      await updatePlayerStats(
-        game.player_x,
-        game.player_o,
-        gameWinner === game.player_x ? 'win' : 'loss'
-      );
-    }
+    // Update player stats since game is completed
+    await updatePlayerStats(
+      game.player_x,
+      game.player_o,
+      gameWinner === game.player_x ? 'win' : 'loss'
+    );
 
     return {
       status: gameStatus,

@@ -142,7 +142,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
           className="flex flex-col items-center gap-2"
         >
           <h3 className="text-3xl font-bold text-pink-500 text-center">
-            🦑 Squid Game: Final Round 🦑
+            🦑 Final Tiebreaker Round 🦑
           </h3>
           {!hasChosenThisRound && (
             <div className="text-2xl font-bold text-yellow-500">
