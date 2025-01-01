@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Hand, Scroll, Scissors } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { RPSChoice, RPSRoundResult } from '@/services/game/types';
+import { RPSChoice as RPSChoiceType, RPSRoundResult } from '@/services/game/types';
+import RPSChoice from './rps/RPSChoice';
+import RPSResult from './rps/RPSResult';
 
 interface RPSGameProps {
   gameId: string;
   playerId: string;
   isMyTurn: boolean;
   opponent: any;
-  onRPSChoice: (choice: RPSChoice) => Promise<{
+  onRPSChoice: (choice: RPSChoiceType) => Promise<{
     status: 'in_progress' | 'completed' | 'rps_tiebreaker';
     winner?: string;
     currentRoundResult?: RPSRoundResult;
@@ -21,7 +21,7 @@ interface RPSGameProps {
 const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedChoice, setSelectedChoice] = useState<RPSChoice | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<RPSChoiceType | null>(null);
   const [roundResult, setRoundResult] = useState<RPSRoundResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
@@ -43,8 +43,8 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
     }
   }, [selectedChoice, timeLeft]);
 
-  const handleChoice = async (choice: RPSChoice) => {
-    if (selectedChoice) return; // Prevent multiple choices
+  const handleChoice = async (choice: RPSChoiceType) => {
+    if (selectedChoice) return;
     
     try {
       setSelectedChoice(choice);
@@ -54,7 +54,6 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
       if (result?.currentRoundResult) {
         setRoundResult(result.currentRoundResult);
         
-        // Only update waiting state if we have opponent's choice
         if (result.currentRoundResult.choices[opponent.id]) {
           setIsWaitingForOpponent(false);
         }
@@ -80,18 +79,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
     }
   };
 
-  const getResultMessage = () => {
-    if (!roundResult) return null;
-    
-    if (isWaitingForOpponent || !roundResult.choices[opponent.id]) {
-      return "Waiting for opponent's choice...";
-    }
-    
-    if (roundResult.winner === 'draw') {
-      return "It's a draw! Next round...";
-    }
-    return roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";
-  };
+  const choices: RPSChoiceType[] = ['rock', 'paper', 'scissors'];
 
   return (
     <motion.div 
@@ -115,89 +103,24 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
       </motion.div>
       
       <div className="grid grid-cols-3 gap-8 w-full max-w-2xl">
-        <motion.div
-          whileHover={{ scale: selectedChoice ? 1 : 1.05 }}
-          whileTap={{ scale: selectedChoice ? 1 : 0.95 }}
-        >
-          <Button
-            onClick={() => !selectedChoice && handleChoice('rock')}
-            disabled={!!selectedChoice}
-            className={`w-full h-32 ${
-              selectedChoice === 'rock' 
-                ? 'bg-green-600 border-green-400'
-                : 'bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
-            } border-2 border-pink-400/50 shadow-lg shadow-pink-500/20`}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Hand className="h-12 w-12" />
-              <span className="text-lg font-bold">Rock</span>
-            </div>
-          </Button>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ scale: selectedChoice ? 1 : 1.05 }}
-          whileTap={{ scale: selectedChoice ? 1 : 0.95 }}
-        >
-          <Button
-            onClick={() => !selectedChoice && handleChoice('paper')}
-            disabled={!!selectedChoice}
-            className={`w-full h-32 ${
-              selectedChoice === 'paper'
-                ? 'bg-green-600 border-green-400'
-                : 'bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
-            } border-2 border-pink-400/50 shadow-lg shadow-pink-500/20`}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Scroll className="h-12 w-12" />
-              <span className="text-lg font-bold">Paper</span>
-            </div>
-          </Button>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ scale: selectedChoice ? 1 : 1.05 }}
-          whileTap={{ scale: selectedChoice ? 1 : 0.95 }}
-        >
-          <Button
-            onClick={() => !selectedChoice && handleChoice('scissors')}
-            disabled={!!selectedChoice}
-            className={`w-full h-32 ${
-              selectedChoice === 'scissors'
-                ? 'bg-green-600 border-green-400'
-                : 'bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
-            } border-2 border-pink-400/50 shadow-lg shadow-pink-500/20`}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Scissors className="h-12 w-12" />
-              <span className="text-lg font-bold">Scissors</span>
-            </div>
-          </Button>
-        </motion.div>
+        {choices.map((choice) => (
+          <RPSChoice
+            key={choice}
+            choice={choice}
+            selectedChoice={selectedChoice}
+            onChoiceSelect={handleChoice}
+          />
+        ))}
       </div>
 
       {selectedChoice && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-xl text-center space-y-2"
-        >
-          <div className="text-green-400">
-            You chose {selectedChoice}!
-          </div>
-          {roundResult && (
-            <>
-              {!isWaitingForOpponent && roundResult.choices[opponent.id] && (
-                <div className="text-purple-400">
-                  Opponent chose {roundResult.choices[opponent.id]}!
-                </div>
-              )}
-              <div className="text-pink-400 font-bold text-2xl">
-                {getResultMessage()}
-              </div>
-            </>
-          )}
-        </motion.div>
+        <RPSResult
+          selectedChoice={selectedChoice}
+          roundResult={roundResult}
+          isWaitingForOpponent={isWaitingForOpponent}
+          opponentId={opponent.id}
+          playerId={playerId}
+        />
       )}
     </motion.div>
   );

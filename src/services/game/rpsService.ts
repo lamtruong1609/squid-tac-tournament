@@ -10,15 +10,13 @@ const determineWinner = (
 ): string | 'draw' => {
   if (p1Choice === p2Choice) return 'draw';
   
-  if (
-    (p1Choice === 'rock' && p2Choice === 'scissors') ||
-    (p1Choice === 'scissors' && p2Choice === 'paper') ||
-    (p1Choice === 'paper' && p2Choice === 'rock')
-  ) {
-    return player1Id;
-  }
+  const winningCombos = {
+    rock: 'scissors',
+    scissors: 'paper',
+    paper: 'rock'
+  };
   
-  return player2Id;
+  return winningCombos[p1Choice] === p2Choice ? player1Id : player2Id;
 };
 
 export const playRPS = async (
