@@ -75,6 +75,9 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
     if (!roundResult) return null;
     
     if (roundResult.winner === 'draw') {
+      if (!roundResult.choices[opponent.id]) {
+        return "Waiting for opponent's choice...";
+      }
       return "It's a draw! Next round...";
     }
     return roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";

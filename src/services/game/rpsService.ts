@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { updatePlayerStats } from '../playerStats';
-import { RPSChoice, RPSGameResult, GameStatus } from './types';
+import { RPSChoice, RPSGameResult } from './types';
 
 const determineWinner = (
   p1Choice: RPSChoice,
@@ -47,7 +47,7 @@ export const playRPS = async (
   rpsHistory[currentRound] = currentRoundChoices;
 
   // If both players have made their choice
-  if (Object.keys(currentRoundChoices).length === 2) {
+  if (currentRoundChoices[game.player_x] && currentRoundChoices[game.player_o]) {
     const p1Choice = currentRoundChoices[game.player_x];
     const p2Choice = currentRoundChoices[game.player_o];
     
@@ -58,8 +58,8 @@ export const playRPS = async (
     const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
     const p2Wins = rpsHistory.filter((r: any) => r.winner === game.player_o).length;
 
-    let gameStatus: GameStatus = 'rps_tiebreaker';
-    let gameWinner: string | undefined;
+    let gameStatus: 'rps_tiebreaker' | 'completed' | 'in_progress' = 'rps_tiebreaker';
+    let gameWinner = null;
 
     if (p1Wins >= 2) {
       gameStatus = 'completed';
@@ -113,7 +113,7 @@ export const playRPS = async (
   return {
     status: 'in_progress',
     currentRoundResult: {
-      winner: 'draw',
+      winner: 'draw', // No winner yet since opponent hasn't chosen
       choices: currentRoundChoices
     }
   };
