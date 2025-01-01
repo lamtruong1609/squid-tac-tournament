@@ -32,10 +32,16 @@ export const RPSGameState = ({ gameId, playerId, onGameStateUpdate }: RPSGameSta
               const rpsHistory = JSON.parse(newData.rps_history);
               const currentRound = rpsHistory[rpsHistory.length - 1];
               
+              // Only update if we have a valid current round
               if (currentRound) {
+                // Check if both players have made their choices
+                const bothPlayersChosen = Object.keys(currentRound).length >= 2;
+                
+                // Update the game state regardless of completion
                 onGameStateUpdate(currentRound);
 
-                if (newData.status === 'completed') {
+                // Handle game completion
+                if (newData.status === 'completed' && bothPlayersChosen) {
                   const isWinner = newData.winner === playerId;
                   
                   toast({
@@ -43,13 +49,19 @@ export const RPSGameState = ({ gameId, playerId, onGameStateUpdate }: RPSGameSta
                     description: "Game Over!",
                   });
                   
+                  // Give users time to see the final result before redirecting
                   setTimeout(() => {
                     navigate(isWinner ? '/winner' : '/loser');
-                  }, 1500);
+                  }, 2000);
                 }
               }
             } catch (error) {
               console.error('Error parsing RPS history:', error);
+              toast({
+                title: "Error",
+                description: "There was an error updating the game state",
+                variant: "destructive",
+              });
             }
           }
         }

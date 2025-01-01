@@ -14,18 +14,21 @@ const RPSResult = ({ selectedChoice, roundResult, isWaitingForOpponent, opponent
   const getResultMessage = () => {
     if (!roundResult) return null;
     
-    if (isWaitingForOpponent || !roundResult.choices[opponentId]) {
+    // Show waiting message if opponent hasn't chosen yet
+    if (!roundResult.choices[opponentId]) {
       return "Waiting for opponent's choice...";
     }
     
-    if (roundResult.winner === 'draw') {
-      return "It's a draw! Next round...";
-    }
-
+    // Both players have chosen - show the result
     const opponentChoice = roundResult.choices[opponentId];
-    const resultMessage = roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";
     
-    return `${resultMessage} (${selectedChoice} vs ${opponentChoice})`;
+    if (roundResult.winner === playerId) {
+      return `You won! (${selectedChoice} beats ${opponentChoice})`;
+    } else if (roundResult.winner === opponentId) {
+      return `Opponent won! (${opponentChoice} beats ${selectedChoice})`;
+    } else {
+      return "It's a draw! Player X wins the tiebreaker!";
+    }
   };
 
   return (
@@ -37,18 +40,14 @@ const RPSResult = ({ selectedChoice, roundResult, isWaitingForOpponent, opponent
       <div className="text-green-400">
         You chose {selectedChoice}!
       </div>
-      {roundResult && (
-        <>
-          {!isWaitingForOpponent && roundResult.choices[opponentId] && (
-            <div className="text-purple-400">
-              Opponent chose {roundResult.choices[opponentId]}!
-            </div>
-          )}
-          <div className="text-pink-400 font-bold text-2xl">
-            {getResultMessage()}
-          </div>
-        </>
+      {roundResult && roundResult.choices[opponentId] && (
+        <div className="text-purple-400">
+          Opponent chose {roundResult.choices[opponentId]}!
+        </div>
       )}
+      <div className="text-pink-400 font-bold text-2xl">
+        {getResultMessage()}
+      </div>
     </motion.div>
   );
 };
