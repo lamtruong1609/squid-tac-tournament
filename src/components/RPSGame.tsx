@@ -28,6 +28,46 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
   const [hasChosenThisRound, setHasChosenThisRound] = useState(false);
 
+  // Load initial game state
+  useEffect(() => {
+    const loadGameState = async () => {
+      const { data: game } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', gameId)
+        .single();
+
+      if (game?.rps_history) {
+        try {
+          const rpsHistory = JSON.parse(game.rps_history);
+          const currentRound = rpsHistory[rpsHistory.length - 1];
+          
+          if (currentRound) {
+            // Set player's previous choice if it exists
+            if (currentRound[playerId]) {
+              setSelectedChoice(currentRound[playerId]);
+              setHasChosenThisRound(true);
+              setIsWaitingForOpponent(true);
+            }
+
+            // Set round result if both players have chosen
+            if (currentRound[opponent.id]) {
+              setRoundResult({
+                winner: currentRound.winner || null,
+                choices: currentRound
+              });
+              setIsWaitingForOpponent(false);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing initial RPS history:', error);
+        }
+      }
+    };
+
+    loadGameState();
+  }, [gameId, playerId, opponent.id]);
+
   // Subscribe to game updates
   useEffect(() => {
     const subscription = supabase
