@@ -8,15 +8,20 @@ const determineWinner = (
   player1Id: string,
   player2Id: string
 ): string | 'draw' => {
-  if (p1Choice === p2Choice) return 'draw';
-  
-  const winningCombos = {
+  // If choices are the same, it's a draw
+  if (p1Choice === p2Choice) {
+    return 'draw';
+  }
+
+  // Define winning combinations
+  const winningMoves = {
     rock: 'scissors',
-    scissors: 'paper',
-    paper: 'rock'
+    paper: 'rock',
+    scissors: 'paper'
   };
-  
-  return winningCombos[p1Choice] === p2Choice ? player1Id : player2Id;
+
+  // Check if player 1's choice beats player 2's choice
+  return winningMoves[p1Choice] === p2Choice ? player1Id : player2Id;
 };
 
 export const playRPS = async (
@@ -24,6 +29,7 @@ export const playRPS = async (
   playerId: string,
   choice: RPSChoice
 ): Promise<RPSGameResult> => {
+  // Get current game state
   const { data: game, error: gameError } = await supabase
     .from('games')
     .select('*')
@@ -36,15 +42,16 @@ export const playRPS = async (
     throw new Error('Game is not in RPS tiebreaker mode');
   }
 
+  // Parse existing RPS history or initialize new array
   const rpsHistory = game.rps_history ? JSON.parse(game.rps_history) : [];
   const currentRound = rpsHistory.length;
 
-  // Add player's choice to current round
+  // Get or initialize current round choices
   const currentRoundChoices = {
     ...(rpsHistory[currentRound] || {}),
     [playerId]: choice
   };
-  
+
   // Update the current round with new choice
   rpsHistory[currentRound] = currentRoundChoices;
 
@@ -73,10 +80,10 @@ export const playRPS = async (
     const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
     const p2Wins = rpsHistory.filter((r: any) => r.winner === game.player_o).length;
 
-    let gameStatus: 'rps_tiebreaker' | 'completed' | 'in_progress' = 'rps_tiebreaker';
+    let gameStatus: 'rps_tiebreaker' | 'completed' = 'rps_tiebreaker';
     let gameWinner = null;
 
-    // Check if either player has won 2 rounds
+    // Best of 3 rounds
     if (p1Wins >= 2) {
       gameStatus = 'completed';
       gameWinner = game.player_x;
@@ -116,11 +123,11 @@ export const playRPS = async (
     };
   }
 
-  // Return in-progress status with current choices
+  // Return in-progress status if waiting for opponent
   return {
     status: 'in_progress',
     currentRoundResult: {
-      winner: 'draw',
+      winner: null,
       choices: currentRoundChoices
     }
   };
