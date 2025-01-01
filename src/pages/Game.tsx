@@ -33,7 +33,10 @@ const Game = () => {
       if (data.player_x_ready && data.player_o_ready && data.status === 'waiting') {
         const { error: updateError } = await supabase
           .from('games')
-          .update({ status: 'in_progress' })
+          .update({ 
+            status: 'in_progress',
+            turns_history: '[]' // Initialize turns_history as empty array
+          })
           .eq('id', gameId);
 
         if (!updateError) {
@@ -41,12 +44,12 @@ const Game = () => {
             title: "Game Starting!",
             description: "Both players are ready. The game will begin now.",
           });
-          return { ...data, status: 'in_progress' };
+          return { ...data, status: 'in_progress', turns_history: '[]' };
         }
       }
       return data;
     },
-    refetchInterval: 3000, // Poll every 3 seconds
+    refetchInterval: 3000,
   });
 
   const { data: players, isLoading: playersLoading } = useQuery({
@@ -74,7 +77,6 @@ const Game = () => {
     }
   }, []);
 
-  // Handle winner/loser redirection
   useEffect(() => {
     if (game?.status === 'completed' && currentPlayerId) {
       if (game.winner === 'draw') {
@@ -120,7 +122,10 @@ const Game = () => {
   // Safely parse turns history with fallback to empty array
   const turnsHistory = (() => {
     try {
-      return game.turns_history ? JSON.parse(game.turns_history) : [];
+      // Ensure turns_history is never undefined or null
+      const historyStr = game.turns_history || '[]';
+      console.log('Raw turns_history:', historyStr); // Debug log
+      return JSON.parse(historyStr);
     } catch (e) {
       console.error('Error parsing turns history:', e);
       return [];

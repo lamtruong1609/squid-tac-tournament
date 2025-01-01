@@ -20,7 +20,7 @@ export const gameService = {
       throw new Error('Game is not in progress');
     }
 
-    const board = JSON.parse(game.board);
+    const board = JSON.parse(game.board || '[]');
     if (board[position] !== null) {
       throw new Error('Invalid move');
     }
@@ -43,8 +43,15 @@ export const gameService = {
     const turnWinner = calculateWinner(board);
     const isDraw = !turnWinner && board.every((cell: string | null) => cell !== null);
     
-    // Parse existing turns history
-    const turnsHistory: GameTurn[] = game.turns_history ? JSON.parse(game.turns_history) : [];
+    // Parse existing turns history with safe fallback
+    const turnsHistory: GameTurn[] = (() => {
+      try {
+        return game.turns_history ? JSON.parse(game.turns_history) : [];
+      } catch (e) {
+        console.error('Error parsing turns history in makeMove:', e);
+        return [];
+      }
+    })();
     
     // Add current turn to history
     turnsHistory.push({
