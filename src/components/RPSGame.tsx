@@ -26,6 +26,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const [roundResult, setRoundResult] = useState<RPSRoundResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+  const [hasChosenThisRound, setHasChosenThisRound] = useState(false);
 
   // Subscribe to game updates
   useEffect(() => {
@@ -52,8 +53,11 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
                   choices: currentRound
                 });
 
+                // Reset choice state if a new round starts
                 if (currentRound.winner) {
                   setIsWaitingForOpponent(false);
+                  setHasChosenThisRound(false);
+                  setSelectedChoice(null);
                 }
 
                 if (newData.status === 'completed') {
@@ -81,7 +85,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   }, [gameId, playerId, navigate, toast]);
 
   useEffect(() => {
-    if (!selectedChoice && timeLeft > 0) {
+    if (!selectedChoice && timeLeft > 0 && !hasChosenThisRound) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -95,14 +99,15 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
 
       return () => clearInterval(timer);
     }
-  }, [selectedChoice, timeLeft]);
+  }, [selectedChoice, timeLeft, hasChosenThisRound]);
 
   const handleChoice = async (choice: RPSChoiceType) => {
-    if (selectedChoice) return;
+    if (hasChosenThisRound || selectedChoice) return;
     
     try {
       setSelectedChoice(choice);
       setIsWaitingForOpponent(true);
+      setHasChosenThisRound(true);
       const result = await onRPSChoice(choice);
       
       if (result?.currentRoundResult) {
@@ -138,7 +143,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
         <h3 className="text-3xl font-bold text-pink-500 text-center">
           🦑 Squid Game: Final Round 🦑
         </h3>
-        {!selectedChoice && (
+        {!hasChosenThisRound && (
           <div className="text-2xl font-bold text-yellow-500">
             Time left: {timeLeft}s
           </div>
@@ -152,6 +157,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
             choice={choice}
             selectedChoice={selectedChoice}
             onChoiceSelect={handleChoice}
+            disabled={hasChosenThisRound}
           />
         ))}
       </div>
