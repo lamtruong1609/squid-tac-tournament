@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Hand, Scroll, Scissors } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,16 +13,18 @@ interface RPSGameProps {
   onRPSChoice: (choice: 'rock' | 'paper' | 'scissors') => Promise<void>;
 }
 
-const RPSGame = ({ gameId, playerId, isMyTurn, opponent, onRPSChoice }: RPSGameProps) => {
+const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [selectedChoice, setSelectedChoice] = useState<'rock' | 'paper' | 'scissors' | null>(null);
 
   const handleChoice = async (choice: 'rock' | 'paper' | 'scissors') => {
     try {
+      setSelectedChoice(choice);
       await onRPSChoice(choice);
       toast({
-        title: "Choice made!",
-        description: "Waiting for opponent's choice...",
+        title: "Choice locked in!",
+        description: "Waiting for final result...",
       });
     } catch (error) {
       toast({
@@ -49,13 +51,17 @@ const RPSGame = ({ gameId, playerId, isMyTurn, opponent, onRPSChoice }: RPSGameP
       
       <div className="grid grid-cols-3 gap-8 w-full max-w-2xl">
         <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: selectedChoice ? 1 : 1.05 }}
+          whileTap={{ scale: selectedChoice ? 1 : 0.95 }}
         >
           <Button
-            onClick={() => handleChoice('rock')}
-            disabled={!isMyTurn}
-            className="w-full h-32 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20"
+            onClick={() => !selectedChoice && handleChoice('rock')}
+            disabled={!!selectedChoice}
+            className={`w-full h-32 ${
+              selectedChoice === 'rock' 
+                ? 'bg-green-600 border-green-400'
+                : 'bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
+            } border-2 border-pink-400/50 shadow-lg shadow-pink-500/20`}
           >
             <div className="flex flex-col items-center gap-2">
               <Hand className="h-12 w-12" />
@@ -65,13 +71,17 @@ const RPSGame = ({ gameId, playerId, isMyTurn, opponent, onRPSChoice }: RPSGameP
         </motion.div>
 
         <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: selectedChoice ? 1 : 1.05 }}
+          whileTap={{ scale: selectedChoice ? 1 : 0.95 }}
         >
           <Button
-            onClick={() => handleChoice('paper')}
-            disabled={!isMyTurn}
-            className="w-full h-32 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20"
+            onClick={() => !selectedChoice && handleChoice('paper')}
+            disabled={!!selectedChoice}
+            className={`w-full h-32 ${
+              selectedChoice === 'paper'
+                ? 'bg-green-600 border-green-400'
+                : 'bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
+            } border-2 border-pink-400/50 shadow-lg shadow-pink-500/20`}
           >
             <div className="flex flex-col items-center gap-2">
               <Scroll className="h-12 w-12" />
@@ -81,13 +91,17 @@ const RPSGame = ({ gameId, playerId, isMyTurn, opponent, onRPSChoice }: RPSGameP
         </motion.div>
 
         <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: selectedChoice ? 1 : 1.05 }}
+          whileTap={{ scale: selectedChoice ? 1 : 0.95 }}
         >
           <Button
-            onClick={() => handleChoice('scissors')}
-            disabled={!isMyTurn}
-            className="w-full h-32 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20"
+            onClick={() => !selectedChoice && handleChoice('scissors')}
+            disabled={!!selectedChoice}
+            className={`w-full h-32 ${
+              selectedChoice === 'scissors'
+                ? 'bg-green-600 border-green-400'
+                : 'bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
+            } border-2 border-pink-400/50 shadow-lg shadow-pink-500/20`}
           >
             <div className="flex flex-col items-center gap-2">
               <Scissors className="h-12 w-12" />
@@ -97,13 +111,13 @@ const RPSGame = ({ gameId, playerId, isMyTurn, opponent, onRPSChoice }: RPSGameP
         </motion.div>
       </div>
 
-      {!isMyTurn && (
+      {selectedChoice && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xl text-pink-400 mt-4"
+          className="text-xl text-green-400 mt-4"
         >
-          Waiting for opponent's choice...
+          You chose {selectedChoice}!
         </motion.div>
       )}
     </motion.div>
