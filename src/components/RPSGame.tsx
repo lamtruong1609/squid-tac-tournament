@@ -17,15 +17,30 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedChoice, setSelectedChoice] = useState<'rock' | 'paper' | 'scissors' | null>(null);
+  const [roundResult, setRoundResult] = useState<{
+    winner: string | 'draw';
+    choices: Record<string, 'rock' | 'paper' | 'scissors'>;
+  } | null>(null);
 
   const handleChoice = async (choice: 'rock' | 'paper' | 'scissors') => {
     try {
       setSelectedChoice(choice);
-      await onRPSChoice(choice);
-      toast({
-        title: "Choice locked in!",
-        description: "Waiting for final result...",
-      });
+      const result = await onRPSChoice(choice);
+      
+      if (result?.currentRoundResult) {
+        setRoundResult(result.currentRoundResult);
+        
+        if (result.status === 'completed') {
+          toast({
+            title: result.winner === playerId ? "You won!" : "Opponent won!",
+            description: "Game Over!",
+          });
+          
+          setTimeout(() => {
+            navigate(result.winner === playerId ? '/winner' : '/loser');
+          }, 1500);
+        }
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -33,6 +48,15 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const getResultMessage = () => {
+    if (!roundResult) return null;
+    
+    if (roundResult.winner === 'draw') {
+      return "It's a draw! Next round...";
+    }
+    return roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";
   };
 
   return (
@@ -115,9 +139,21 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xl text-green-400 mt-4"
+          className="text-xl text-center space-y-2"
         >
-          You chose {selectedChoice}!
+          <div className="text-green-400">
+            You chose {selectedChoice}!
+          </div>
+          {roundResult && (
+            <>
+              <div className="text-purple-400">
+                Opponent chose {roundResult.choices[opponent.id]}!
+              </div>
+              <div className="text-pink-400 font-bold text-2xl">
+                {getResultMessage()}
+              </div>
+            </>
+          )}
         </motion.div>
       )}
     </motion.div>
