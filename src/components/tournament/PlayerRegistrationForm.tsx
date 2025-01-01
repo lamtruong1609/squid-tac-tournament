@@ -17,7 +17,6 @@ const formSchema = z.object({
   password: z.string().min(6, {
     message: "Password must be at least 6 characters.",
   }),
-  tournamentId: z.string().nonempty("Tournament ID is required"),
   telegramUrl: z.string().optional(),
   xUrl: z.string().optional(),
 });
@@ -29,7 +28,6 @@ export const PlayerRegistrationForm = () => {
     defaultValues: {
       playerName: "",
       password: "",
-      tournamentId: "",
       telegramUrl: "",
       xUrl: "",
     },
@@ -52,25 +50,36 @@ export const PlayerRegistrationForm = () => {
       // Generate Squid Game avatar for new players
       const avatarUrl = generateSquidAvatar();
 
-      // Join tournament with selected ID
+      // Get latest active tournament or create one
+      const { data: activeTournament } = await supabase
+        .from('tournaments')
+        .select('id')
+        .eq('status', 'waiting')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      const tournamentId = activeTournament?.id;
+
+      // Join tournament
       await tournamentService.joinTournament({
         playerName: values.playerName,
         password: values.password,
-        tournamentId: values.tournamentId,
+        tournamentId: tournamentId,
         telegramUrl: values.telegramUrl || null,
         xUrl: values.xUrl || null,
         avatarUrl,
       });
       
-      toast.success("Tournament Joined", {
-        description: `Welcome ${values.playerName}! You've successfully joined the tournament.`,
+      toast.success("Registration Successful", {
+        description: `Welcome ${values.playerName}! You've been registered and will be paired with other players.`,
       });
       
       form.reset();
       navigate('/');
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Error Joining Tournament", {
+      toast.error("Registration Error", {
         description: error instanceof Error ? error.message : "Please try again later",
       });
     }
@@ -109,20 +118,6 @@ export const PlayerRegistrationForm = () => {
 
         <FormField
           control={form.control}
-          name="tournamentId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tournament ID</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="telegramUrl"
           render={({ field }) => (
             <FormItem>
@@ -150,7 +145,7 @@ export const PlayerRegistrationForm = () => {
         />
 
         <Button type="submit" className="w-full">
-          Join Tournament
+          Register
         </Button>
       </form>
     </Form>
