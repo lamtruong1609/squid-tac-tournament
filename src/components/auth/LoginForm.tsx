@@ -68,6 +68,10 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
+      // Store player info in localStorage
+      localStorage.setItem('playerId', player.id);
+      localStorage.setItem('playerName', player.name);
+      
       toast.success("Login successful!");
       
       const isLoser = await checkLastGameResult(player.id);

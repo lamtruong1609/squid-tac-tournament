@@ -62,8 +62,8 @@ export const PlayerRegistrationForm = () => {
 
       const tournamentId = activeTournament?.id;
 
-      // Join tournament
-      await tournamentService.joinTournament({
+      // Join tournament and get player data
+      const result = await tournamentService.joinTournament({
         playerName: values.playerName,
         password: values.password,
         tournamentId: tournamentId,
@@ -72,12 +72,18 @@ export const PlayerRegistrationForm = () => {
         avatarUrl,
       });
       
+      // Store player info in localStorage
+      if (result.playerId) {
+        localStorage.setItem('playerId', result.playerId);
+        localStorage.setItem('playerName', values.playerName);
+      }
+      
       toast.success("Registration Successful", {
         description: `Welcome ${values.playerName}! You've been registered and will be paired with other players.`,
       });
       
       form.reset();
-      navigate('/');
+      navigate('/'); // Redirect to home page after successful registration
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("Registration Error", {
