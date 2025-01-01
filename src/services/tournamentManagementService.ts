@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase";
+import { bracketService } from "./bracketService";
 
 export const tournamentManagementService = {
   async createTournament(maxPlayers: number = 8) {
+    // Ensure maxPlayers is a power of 2 for proper bracket structure
+    const validMaxPlayers = Math.pow(2, Math.floor(Math.log2(maxPlayers)));
+    
     const { data: existingTournaments } = await supabase
       .from("tournaments")
       .select("name")
@@ -17,7 +21,7 @@ export const tournamentManagementService = {
       .insert({
         name: `Squid Game Tournament ${nextNumber}`,
         status: "waiting",
-        max_players: maxPlayers,
+        max_players: validMaxPlayers,
         current_players: 0,
         current_round: 1
       })
@@ -35,6 +39,26 @@ export const tournamentManagementService = {
 
     if (error) throw error;
     return players;
+  },
+
+  async startTournament(tournament: any, players: any[]) {
+    try {
+      // Update tournament status to in_progress
+      const { error: updateError } = await supabase
+        .from("tournaments")
+        .update({ status: "in_progress" })
+        .eq("id", tournament.id);
+
+      if (updateError) throw updateError;
+
+      // Create initial matches using bracketService
+      await bracketService.createInitialMatches(tournament.id, players);
+
+      return players.length;
+    } catch (error) {
+      console.error('Error in startTournament:', error);
+      throw error;
+    }
   },
 
   async createInitialMatches(tournament: any, players: any[]) {
