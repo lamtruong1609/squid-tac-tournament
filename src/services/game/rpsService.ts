@@ -41,7 +41,7 @@ export const playRPS = async (
 
   // Add player's choice to history
   const currentRoundChoices = {
-    ...rpsHistory[currentRound],
+    ...(rpsHistory[currentRound] || {}),
     [playerId]: choice
   };
   rpsHistory[currentRound] = currentRoundChoices;
@@ -51,7 +51,8 @@ export const playRPS = async (
     const p1Choice = currentRoundChoices[game.player_x];
     const p2Choice = currentRoundChoices[game.player_o];
     
-    let roundWinner = determineWinner(p1Choice, p2Choice, game.player_x, game.player_o);
+    const roundWinner = determineWinner(p1Choice, p2Choice, game.player_x, game.player_o);
+    rpsHistory[currentRound].winner = roundWinner;
 
     // Count wins in RPS
     const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
