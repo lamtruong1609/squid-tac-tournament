@@ -24,6 +24,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const [selectedChoice, setSelectedChoice] = useState<RPSChoice | null>(null);
   const [roundResult, setRoundResult] = useState<RPSRoundResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
 
   useEffect(() => {
     if (!selectedChoice && timeLeft > 0) {
@@ -47,10 +48,16 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
     
     try {
       setSelectedChoice(choice);
+      setIsWaitingForOpponent(true);
       const result = await onRPSChoice(choice);
       
       if (result?.currentRoundResult) {
         setRoundResult(result.currentRoundResult);
+        
+        // Only update waiting state if we have opponent's choice
+        if (result.currentRoundResult.choices[opponent.id]) {
+          setIsWaitingForOpponent(false);
+        }
         
         if (result.status === 'completed') {
           toast({
@@ -64,6 +71,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
         }
       }
     } catch (error) {
+      setIsWaitingForOpponent(false);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to make choice",
@@ -75,12 +83,10 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const getResultMessage = () => {
     if (!roundResult) return null;
     
-    // Check if opponent hasn't made a choice yet
-    if (!roundResult.choices[opponent.id]) {
+    if (isWaitingForOpponent || !roundResult.choices[opponent.id]) {
       return "Waiting for opponent's choice...";
     }
     
-    // Both players have made their choices
     if (roundResult.winner === 'draw') {
       return "It's a draw! Next round...";
     }
@@ -181,7 +187,7 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
           </div>
           {roundResult && (
             <>
-              {roundResult.choices[opponent.id] && (
+              {!isWaitingForOpponent && roundResult.choices[opponent.id] && (
                 <div className="text-purple-400">
                   Opponent chose {roundResult.choices[opponent.id]}!
                 </div>
