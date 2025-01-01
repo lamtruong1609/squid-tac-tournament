@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { updatePlayerStats } from '../playerStats';
-import { calculateWinner } from './gameUtils';
-import { GameTurn } from './types';
+import { calculateWinner, isBoardFull } from './boardUtils';
+import { GameState, GameTurn, RPSChoice } from './types';
 import { playRPS } from './rpsService';
 
 export const gameService = {
@@ -18,7 +18,14 @@ export const gameService = {
       throw new Error('Game is not in progress');
     }
 
-    const board = JSON.parse(game.board || '[]');
+    // Parse the current board state
+    let board: (string | null)[];
+    try {
+      board = JSON.parse(game.board || '[]');
+    } catch {
+      board = Array(9).fill(null);
+    }
+
     if (board[position] !== null) {
       throw new Error('Invalid move');
     }
@@ -35,63 +42,72 @@ export const gameService = {
       throw new Error('Not your turn');
     }
 
+    // Make the move
     board[position] = game.next_player;
     
-    // Calculate winner for this turn
+    // Calculate winner for this board
     const turnWinner = calculateWinner(board);
-    const isDraw = !turnWinner && board.every((cell: string | null) => cell !== null);
+    const isDraw = !turnWinner && isBoardFull(board);
     
-    // Parse existing turns history with safe fallback
+    // Parse existing turns history
     const turnsHistory: GameTurn[] = (() => {
       try {
         return game.turns_history ? JSON.parse(game.turns_history) : [];
-      } catch (e) {
-        console.error('Error parsing turns history in makeMove:', e);
+      } catch {
+        console.error('Error parsing turns history, defaulting to empty array');
         return [];
       }
     })();
-    
-    // Add current turn to history
-    turnsHistory.push({
-      board: JSON.stringify(board),
-      winner: turnWinner ? (isPlayerX ? game.player_x : game.player_o) : (isDraw ? 'draw' : null)
-    });
 
-    // Calculate wins for each player
-    const playerXWins = turnsHistory.filter(t => t.winner === game.player_x).length;
-    const playerOWins = turnsHistory.filter(t => t.winner === game.player_o).length;
-    
-    let gameStatus = 'in_progress';
+    let gameStatus = game.status;
     let gameWinner = null;
+    let nextBoard = board;
+    let nextTurn = currentTurn;
 
-    // Check if someone has won 2 turns
-    if (playerXWins >= 2) {
-      gameStatus = 'completed';
-      gameWinner = game.player_x;
-    } else if (playerOWins >= 2) {
-      gameStatus = 'completed';
-      gameWinner = game.player_o;
-    } else if (currentTurn >= 3 && playerXWins === playerOWins) {
-      // If all 3 turns are played and it's a tie, start RPS
-      gameStatus = 'rps_tiebreaker';
+    // If there's a winner or it's a draw, complete this turn
+    if (turnWinner || isDraw) {
+      // Add completed turn to history
+      turnsHistory.push({
+        board: JSON.stringify(board),
+        winner: turnWinner ? (isPlayerX ? game.player_x : game.player_o) : (isDraw ? 'draw' : null)
+      });
+
+      // Calculate wins for each player
+      const playerXWins = turnsHistory.filter(t => t.winner === game.player_x).length;
+      const playerOWins = turnsHistory.filter(t => t.winner === game.player_o).length;
+
+      // Check if game should end or continue to next turn
+      if (playerXWins >= 2) {
+        gameStatus = 'completed';
+        gameWinner = game.player_x;
+      } else if (playerOWins >= 2) {
+        gameStatus = 'completed';
+        gameWinner = game.player_o;
+      } else if (turnsHistory.length >= 3 && playerXWins === playerOWins) {
+        gameStatus = 'rps_tiebreaker';
+      } else {
+        // Start new turn with empty board
+        nextBoard = Array(9).fill(null);
+        nextTurn = currentTurn + 1;
+      }
     }
 
     // Update game state
     const { error: updateError } = await supabase
       .from('games')
       .update({
-        board: JSON.stringify(Array(9).fill(null)), // Reset board for next turn
+        board: JSON.stringify(nextBoard),
         next_player: game.next_player === 'X' ? 'O' : 'X',
         winner: gameWinner,
         status: gameStatus,
         turns_history: JSON.stringify(turnsHistory),
-        current_turn: currentTurn + 1
+        current_turn: nextTurn
       })
       .eq('id', gameId);
 
     if (updateError) throw updateError;
 
-    // If game is completed, update player stats
+    // Update player stats if game completed
     if (gameStatus === 'completed') {
       await updatePlayerStats(
         game.player_x,

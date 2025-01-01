@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { gameService } from '@/services/gameService';
+import { gameService } from '@/services/game/gameService';
 import { Badge } from './ui/badge';
 import { Sword, Hand, Scroll, Scissors } from 'lucide-react';
 
@@ -39,11 +39,6 @@ const GameBoard = ({
         toast({
           title: "It's a tie!",
           description: "Time for Rock, Paper, Scissors!",
-        });
-      } else {
-        toast({
-          title: "Move made!",
-          description: "Waiting for opponent's move...",
         });
       }
     } catch (error) {
@@ -83,7 +78,7 @@ const GameBoard = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Badge variant="outline" className="text-lg">
-          Turn {currentTurn}/3
+          Match {currentTurn}/3
         </Badge>
         <div className="flex gap-2">
           {turnsHistory.map((turn, index) => (

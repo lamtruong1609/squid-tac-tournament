@@ -4,3 +4,9 @@ export interface GameTurn {
 }
 
 export type RPSChoice = 'rock' | 'paper' | 'scissors';
+
+export interface GameState {
+  status: string;
+  winner: string | null;
+  turnsHistory: GameTurn[];
+}
