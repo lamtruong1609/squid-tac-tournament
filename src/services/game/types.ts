@@ -1,5 +1,10 @@
 export type RPSChoice = 'rock' | 'paper' | 'scissors';
 
+export interface GameTurn {
+  board: string;
+  winner: string | null;
+}
+
 export interface RPSRoundResult {
   winner: string | 'draw' | null;
   choices: {
