@@ -30,7 +30,6 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            // Auto-select rock if time runs out
             handleChoice('rock');
             clearInterval(timer);
             return 0;
@@ -44,6 +43,8 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   }, [selectedChoice, timeLeft]);
 
   const handleChoice = async (choice: RPSChoice) => {
+    if (selectedChoice) return; // Prevent multiple choices
+    
     try {
       setSelectedChoice(choice);
       const result = await onRPSChoice(choice);
@@ -74,10 +75,13 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const getResultMessage = () => {
     if (!roundResult) return null;
     
+    // Check if opponent hasn't made a choice yet
+    if (!roundResult.choices[opponent.id]) {
+      return "Waiting for opponent's choice...";
+    }
+    
+    // Both players have made their choices
     if (roundResult.winner === 'draw') {
-      if (!roundResult.choices[opponent.id]) {
-        return "Waiting for opponent's choice...";
-      }
       return "It's a draw! Next round...";
     }
     return roundResult.winner === playerId ? "You won this round!" : "Opponent won this round!";
@@ -177,9 +181,11 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
           </div>
           {roundResult && (
             <>
-              <div className="text-purple-400">
-                Opponent chose {roundResult.choices[opponent.id]}!
-              </div>
+              {roundResult.choices[opponent.id] && (
+                <div className="text-purple-400">
+                  Opponent chose {roundResult.choices[opponent.id]}!
+                </div>
+              )}
               <div className="text-pink-400 font-bold text-2xl">
                 {getResultMessage()}
               </div>

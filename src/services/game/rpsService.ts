@@ -10,13 +10,15 @@ const determineWinner = (
 ): string | 'draw' => {
   if (p1Choice === p2Choice) return 'draw';
   
-  const winningCombos: Record<RPSChoice, RPSChoice> = {
-    rock: 'scissors',
-    scissors: 'paper',
-    paper: 'rock'
-  };
+  if (
+    (p1Choice === 'rock' && p2Choice === 'scissors') ||
+    (p1Choice === 'scissors' && p2Choice === 'paper') ||
+    (p1Choice === 'paper' && p2Choice === 'rock')
+  ) {
+    return player1Id;
+  }
   
-  return winningCombos[p1Choice] === p2Choice ? player1Id : player2Id;
+  return player2Id;
 };
 
 export const playRPS = async (
@@ -36,31 +38,37 @@ export const playRPS = async (
     throw new Error('Game is not in RPS tiebreaker mode');
   }
 
+  // Parse existing RPS history or create new array
   const rpsHistory = game.rps_history ? JSON.parse(game.rps_history) : [];
   const currentRound = rpsHistory.length;
 
-  // Add player's choice to history
+  // Add player's choice to current round
   const currentRoundChoices = {
     ...(rpsHistory[currentRound] || {}),
     [playerId]: choice
   };
+  
+  // Update the current round with new choice
   rpsHistory[currentRound] = currentRoundChoices;
 
-  // If both players have made their choice
-  if (currentRoundChoices[game.player_x] && currentRoundChoices[game.player_o]) {
+  // Check if both players have made their choices
+  const bothPlayersChosen = currentRoundChoices[game.player_x] && currentRoundChoices[game.player_o];
+
+  if (bothPlayersChosen) {
     const p1Choice = currentRoundChoices[game.player_x];
     const p2Choice = currentRoundChoices[game.player_o];
     
     const roundWinner = determineWinner(p1Choice, p2Choice, game.player_x, game.player_o);
     rpsHistory[currentRound].winner = roundWinner;
 
-    // Count wins in RPS
+    // Count wins for each player
     const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
     const p2Wins = rpsHistory.filter((r: any) => r.winner === game.player_o).length;
 
     let gameStatus: 'rps_tiebreaker' | 'completed' | 'in_progress' = 'rps_tiebreaker';
     let gameWinner = null;
 
+    // Check if either player has won 2 rounds
     if (p1Wins >= 2) {
       gameStatus = 'completed';
       gameWinner = game.player_x;
@@ -81,7 +89,7 @@ export const playRPS = async (
 
     if (updateError) throw updateError;
 
-    // If game is completed after RPS, update player stats
+    // Update player stats if game is completed
     if (gameStatus === 'completed' && gameWinner) {
       await updatePlayerStats(
         game.player_x,
@@ -100,7 +108,7 @@ export const playRPS = async (
     };
   }
 
-  // If waiting for other player's choice
+  // If only one player has chosen, update the game state and wait for opponent
   const { error: updateError } = await supabase
     .from('games')
     .update({
@@ -110,10 +118,11 @@ export const playRPS = async (
 
   if (updateError) throw updateError;
 
+  // Return in-progress status with current choices
   return {
     status: 'in_progress',
     currentRoundResult: {
-      winner: 'draw', // No winner yet since opponent hasn't chosen
+      winner: 'draw',
       choices: currentRoundChoices
     }
   };
