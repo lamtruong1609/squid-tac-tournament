@@ -32,7 +32,11 @@ export const authService = {
       .setExpirationTime('7d')
       .sign(secretKey);
 
+    // Store both cookie and localStorage
     Cookies.set('auth_token', token, COOKIE_OPTIONS);
+    localStorage.setItem('playerId', data.id);
+    localStorage.setItem('playerName', data.name);
+    
     return data;
   },
 
@@ -54,7 +58,11 @@ export const authService = {
       .setExpirationTime('7d')
       .sign(secretKey);
 
+    // Store both cookie and localStorage
     Cookies.set('auth_token', token, COOKIE_OPTIONS);
+    localStorage.setItem('playerId', data.id);
+    localStorage.setItem('playerName', data.name);
+    
     return data;
   },
 
@@ -92,7 +100,15 @@ export const authService = {
     if (!token) return false;
 
     try {
-      jose.jwtVerify(token, secretKey);
+      const decoded = jose.decodeJwt(token);
+      const playerId = decoded.playerId as string;
+      
+      // If localStorage is missing, restore it from the token
+      if (!localStorage.getItem('playerId')) {
+        localStorage.setItem('playerId', playerId);
+        localStorage.setItem('playerName', decoded.playerName as string);
+      }
+      
       return true;
     } catch {
       return false;
@@ -113,5 +129,7 @@ export const authService = {
 
   logout() {
     Cookies.remove('auth_token');
+    localStorage.removeItem('playerId');
+    localStorage.removeItem('playerName');
   }
 };
