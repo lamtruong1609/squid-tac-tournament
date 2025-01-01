@@ -2,6 +2,23 @@ import { supabase } from '@/lib/supabase';
 import { updatePlayerStats } from '../playerStats';
 import { RPSChoice, RPSGameResult, GameStatus } from './types';
 
+const determineWinner = (
+  p1Choice: RPSChoice,
+  p2Choice: RPSChoice,
+  player1Id: string,
+  player2Id: string
+): string | 'draw' => {
+  if (p1Choice === p2Choice) return 'draw';
+  
+  const winningCombos: Record<RPSChoice, RPSChoice> = {
+    rock: 'scissors',
+    scissors: 'paper',
+    paper: 'rock'
+  };
+  
+  return winningCombos[p1Choice] === p2Choice ? player1Id : player2Id;
+};
+
 export const playRPS = async (
   gameId: string,
   playerId: string,
@@ -34,7 +51,7 @@ export const playRPS = async (
     const p1Choice = currentRoundChoices[game.player_x];
     const p2Choice = currentRoundChoices[game.player_o];
     
-    let roundWinner = determineRoundWinner(p1Choice, p2Choice, game.player_x, game.player_o);
+    let roundWinner = determineWinner(p1Choice, p2Choice, game.player_x, game.player_o);
 
     // Count wins in RPS
     const p1Wins = rpsHistory.filter((r: any) => r.winner === game.player_x).length;
@@ -100,22 +117,3 @@ export const playRPS = async (
     }
   };
 };
-
-function determineRoundWinner(
-  p1Choice: RPSChoice,
-  p2Choice: RPSChoice,
-  player1Id: string,
-  player2Id: string
-): string | 'draw' {
-  if (p1Choice === p2Choice) return 'draw';
-  
-  if (
-    (p1Choice === 'rock' && p2Choice === 'scissors') ||
-    (p1Choice === 'paper' && p2Choice === 'rock') ||
-    (p1Choice === 'scissors' && p2Choice === 'paper')
-  ) {
-    return player1Id;
-  }
-  
-  return player2Id;
-}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Hand, Scroll, Scissors } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -23,6 +23,25 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
   const navigate = useNavigate();
   const [selectedChoice, setSelectedChoice] = useState<RPSChoice | null>(null);
   const [roundResult, setRoundResult] = useState<RPSRoundResult | null>(null);
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  useEffect(() => {
+    if (!selectedChoice && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            // Auto-select rock if time runs out
+            handleChoice('rock');
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [selectedChoice, timeLeft]);
 
   const handleChoice = async (choice: RPSChoice) => {
     try {
@@ -67,13 +86,20 @@ const RPSGame = ({ gameId, playerId, opponent, onRPSChoice }: RPSGameProps) => {
       animate={{ scale: 1 }}
       className="flex flex-col items-center gap-8 p-8 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl backdrop-blur-lg border border-pink-500/30"
     >
-      <motion.h3 
+      <motion.div 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="text-3xl font-bold text-pink-500 text-center"
+        className="flex flex-col items-center gap-2"
       >
-        🦑 Squid Game: Final Round 🦑
-      </motion.h3>
+        <h3 className="text-3xl font-bold text-pink-500 text-center">
+          🦑 Squid Game: Final Round 🦑
+        </h3>
+        {!selectedChoice && (
+          <div className="text-2xl font-bold text-yellow-500">
+            Time left: {timeLeft}s
+          </div>
+        )}
+      </motion.div>
       
       <div className="grid grid-cols-3 gap-8 w-full max-w-2xl">
         <motion.div
