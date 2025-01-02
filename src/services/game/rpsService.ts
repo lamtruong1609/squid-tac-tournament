@@ -26,7 +26,7 @@ export const playRPS = async (
   playerId: string,
   choice: RPSChoice
 ): Promise<RPSGameResult> => {
-  // First, get the current game state
+  // Get current game state
   const { data: game, error: gameError } = await supabase
     .from('games')
     .select('*')
@@ -39,35 +39,30 @@ export const playRPS = async (
     throw new Error('Game is not in RPS tiebreaker mode');
   }
 
-  // Parse existing RPS history or initialize new array
-  const rpsHistory = game.rps_history ? JSON.parse(game.rps_history) : [];
+  // Parse existing choices
+  const currentChoices = game.rps_history ? JSON.parse(game.rps_history) : {};
   
-  // Check if player has already made a choice in this game
-  const hasPlayerChosen = rpsHistory.some((round: any) => round[playerId]);
-  if (hasPlayerChosen) {
-    throw new Error('Player has already made a choice in this game');
+  // Check if player has already made a choice
+  if (currentChoices[playerId]) {
+    throw new Error('Player has already made a choice');
   }
 
   // Add new choice
-  const currentRound = {
-    ...(rpsHistory[0] || {}),
-    [playerId]: choice
-  };
-  rpsHistory[0] = currentRound;
+  currentChoices[playerId] = choice;
 
   // Check if both players have made their choices
   const otherPlayerId = playerId === game.player_x ? game.player_o : game.player_x;
-  const bothPlayersChosen = currentRound[game.player_x] && currentRound[game.player_o];
+  const bothPlayersChosen = currentChoices[game.player_x] && currentChoices[game.player_o];
 
   let updateData: any = {
-    rps_history: JSON.stringify(rpsHistory)
+    rps_history: JSON.stringify(currentChoices)
   };
 
   if (bothPlayersChosen) {
     // Determine winner
     const winner = determineWinner(
-      currentRound[game.player_x],
-      currentRound[game.player_o],
+      currentChoices[game.player_x],
+      currentChoices[game.player_o],
       game.player_x,
       game.player_o
     );
@@ -76,16 +71,35 @@ export const playRPS = async (
     updateData = {
       ...updateData,
       status: 'completed',
-      winner: winner
+      winner
     };
 
-    // Add winner to current round
-    currentRound.winner = winner;
-    rpsHistory[0] = currentRound;
-    updateData.rps_history = JSON.stringify(rpsHistory);
+    // Update game state with final result
+    const { error: updateError } = await supabase
+      .from('games')
+      .update(updateData)
+      .eq('id', gameId);
+
+    if (updateError) throw updateError;
+
+    // Update player stats
+    await updatePlayerStats(
+      game.player_x,
+      game.player_o,
+      winner === game.player_x ? 'win' : 'loss'
+    );
+
+    return {
+      status: 'completed',
+      winner,
+      currentRoundResult: {
+        winner,
+        choices: currentChoices
+      }
+    };
   }
 
-  // Update game state
+  // If waiting for other player's choice
   const { error: updateError } = await supabase
     .from('games')
     .update(updateData)
@@ -93,21 +107,11 @@ export const playRPS = async (
 
   if (updateError) throw updateError;
 
-  // If game completed, update player stats
-  if (bothPlayersChosen) {
-    await updatePlayerStats(
-      game.player_x,
-      game.player_o,
-      updateData.winner === game.player_x ? 'win' : 'loss'
-    );
-  }
-
   return {
-    status: bothPlayersChosen ? 'completed' : 'in_progress',
-    winner: bothPlayersChosen ? updateData.winner : null,
+    status: 'in_progress',
     currentRoundResult: {
-      winner: bothPlayersChosen ? updateData.winner : null,
-      choices: currentRound
+      winner: null,
+      choices: currentChoices
     }
   };
 };
