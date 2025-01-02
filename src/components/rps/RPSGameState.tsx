@@ -33,22 +33,29 @@ export const RPSGameState = ({ gameId, playerId, onGameStateUpdate }: RPSGameSta
               const currentRound = rpsHistory[rpsHistory.length - 1];
               
               if (currentRound) {
-                // Check if both players have made their choices
-                const bothPlayersChosen = Object.keys(currentRound).length >= 2;
-                
-                // Update the game state immediately when choices are made
+                // Update game state with current choices
                 onGameStateUpdate(currentRound);
 
-                // Handle game completion only when both players have chosen and there's a winner
-                if (newData.status === 'completed' && bothPlayersChosen && currentRound.winner) {
-                  const isWinner = currentRound.winner === playerId;
+                // Check if both players have made their choices and game is completed
+                const bothPlayersChosen = currentRound[playerId] && Object.keys(currentRound).find(key => 
+                  key !== playerId && key !== 'winner' && currentRound[key]
+                );
+
+                if (newData.status === 'completed' && bothPlayersChosen) {
+                  const opponentId = Object.keys(currentRound).find(key => 
+                    key !== playerId && key !== 'winner'
+                  );
                   
+                  const isWinner = currentRound.winner === playerId;
+                  const playerChoice = currentRound[playerId];
+                  const opponentChoice = opponentId ? currentRound[opponentId] : '';
+
                   toast({
                     title: isWinner ? "You won the Final Tiebreaker!" : "Opponent won the Final Tiebreaker!",
-                    description: `Final Result: ${currentRound[playerId]} vs ${currentRound[currentRound.winner === playerId ? Object.keys(currentRound).find(key => key !== playerId && key !== 'winner') : playerId]}`,
+                    description: `Final Result: ${playerChoice} vs ${opponentChoice}`,
                   });
-                  
-                  // Give users more time to see the final result before redirecting
+
+                  // Navigate to winner/loser page after showing result
                   setTimeout(() => {
                     navigate(isWinner ? '/winner' : '/loser');
                   }, 5000);
