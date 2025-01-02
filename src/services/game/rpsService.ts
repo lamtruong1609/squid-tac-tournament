@@ -7,9 +7,9 @@ const determineWinner = (
   p2Choice: RPSChoice,
   player1Id: string,
   player2Id: string
-): string | 'draw' => {
+): string => {
   if (p1Choice === p2Choice) {
-    return player1Id; // In case of draw in final match, player X wins
+    return player1Id; // In case of tie, player X (player1) wins
   }
 
   const winningCombos: Record<RPSChoice, RPSChoice> = {
@@ -26,6 +26,7 @@ export const playRPS = async (
   playerId: string,
   choice: RPSChoice
 ): Promise<RPSGameResult> => {
+  // First, get the current game state
   const { data: game, error: gameError } = await supabase
     .from('games')
     .select('*')
@@ -40,79 +41,73 @@ export const playRPS = async (
 
   // Parse existing RPS history or initialize new array
   const rpsHistory = game.rps_history ? JSON.parse(game.rps_history) : [];
-  const currentRound = rpsHistory.length;
+  
+  // Check if player has already made a choice in this game
+  const hasPlayerChosen = rpsHistory.some((round: any) => round[playerId]);
+  if (hasPlayerChosen) {
+    throw new Error('Player has already made a choice in this game');
+  }
 
-  // Get or initialize current round choices
-  const currentRoundChoices = {
-    ...(rpsHistory[currentRound] || {}),
+  // Add new choice
+  const currentRound = {
+    ...(rpsHistory[0] || {}),
     [playerId]: choice
   };
-
-  // Update the current round with new choice
-  rpsHistory[currentRound] = currentRoundChoices;
+  rpsHistory[0] = currentRound;
 
   // Check if both players have made their choices
-  const bothPlayersChosen = currentRoundChoices[game.player_x] && currentRoundChoices[game.player_o];
+  const otherPlayerId = playerId === game.player_x ? game.player_o : game.player_x;
+  const bothPlayersChosen = currentRound[game.player_x] && currentRound[game.player_o];
+
+  let updateData: any = {
+    rps_history: JSON.stringify(rpsHistory)
+  };
 
   if (bothPlayersChosen) {
-    const roundWinner = determineWinner(
-      currentRoundChoices[game.player_x],
-      currentRoundChoices[game.player_o],
+    // Determine winner
+    const winner = determineWinner(
+      currentRound[game.player_x],
+      currentRound[game.player_o],
       game.player_x,
       game.player_o
     );
 
-    // Add winner to current round
-    rpsHistory[currentRound].winner = roundWinner;
-
-    // In final tiebreaker, one round determines the winner
-    const gameStatus = 'completed';
-    const gameWinner = roundWinner;
-
-    // Update game state with round result
-    const { error: updateError } = await supabase
-      .from('games')
-      .update({
-        status: gameStatus,
-        winner: gameWinner,
-        rps_history: JSON.stringify(rpsHistory)
-      })
-      .eq('id', gameId);
-
-    if (updateError) throw updateError;
-
-    // Update player stats since game is completed
-    await updatePlayerStats(
-      game.player_x,
-      game.player_o,
-      gameWinner === game.player_x ? 'win' : 'loss'
-    );
-
-    return {
-      status: gameStatus,
-      winner: gameWinner,
-      currentRoundResult: {
-        winner: roundWinner,
-        choices: currentRoundChoices
-      }
+    // Update game with winner
+    updateData = {
+      ...updateData,
+      status: 'completed',
+      winner: winner
     };
+
+    // Add winner to current round
+    currentRound.winner = winner;
+    rpsHistory[0] = currentRound;
+    updateData.rps_history = JSON.stringify(rpsHistory);
   }
 
-  // If not both players have chosen yet, just update the history
+  // Update game state
   const { error: updateError } = await supabase
     .from('games')
-    .update({
-      rps_history: JSON.stringify(rpsHistory)
-    })
+    .update(updateData)
     .eq('id', gameId);
 
   if (updateError) throw updateError;
 
+  // If game completed, update player stats
+  if (bothPlayersChosen) {
+    await updatePlayerStats(
+      game.player_x,
+      game.player_o,
+      updateData.winner === game.player_x ? 'win' : 'loss'
+    );
+  }
+
   return {
-    status: 'in_progress',
+    status: bothPlayersChosen ? 'completed' : 'in_progress',
+    winner: bothPlayersChosen ? updateData.winner : null,
     currentRoundResult: {
-      winner: null,
-      choices: currentRoundChoices
+      winner: bothPlayersChosen ? updateData.winner : null,
+      choices: currentRound
     }
   };
 };
