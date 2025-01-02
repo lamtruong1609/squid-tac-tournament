@@ -1,15 +1,11 @@
 import React from 'react';
 import { Button } from './ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { gameService } from '@/services/game/gameService';
-import { Badge } from './ui/badge';
-import { User, Trophy, Skull } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { toast } from 'sonner';
 import RPSGame from './RPSGame';
 import { RPSChoice } from '@/services/game/types';
-import { toast } from 'sonner';
+import { GameStats } from './game/GameStats';
+import { showGameResult } from './game/GameResult';
 
 interface GameBoardProps {
   gameId: string;
@@ -34,67 +30,15 @@ const GameBoard = ({
   players,
   currentPlayerSymbol
 }: GameBoardProps) => {
-  const { toast: uiToast } = useToast();
-  const navigate = useNavigate();
-
   const currentPlayer = players?.find(p => p.id === playerId);
   const opponent = players?.find(p => p.id !== playerId);
-
-  const showGameResult = (winner: string | null) => {
-    const isWinner = winner === playerId;
-    
-    // Show animated toast notification
-    toast(
-      isWinner ? "Victory! 🎮" : "Game Over! 💀",
-      {
-        description: isWinner 
-          ? "Congratulations! You've won the game!" 
-          : "Better luck next time!",
-        icon: isWinner ? <Trophy className="h-5 w-5 text-yellow-500" /> : <Skull className="h-5 w-5 text-red-500" />,
-        duration: 5000,
-        className: isWinner 
-          ? "bg-gradient-to-r from-yellow-500/20 to-pink-500/20 border-yellow-500/50" 
-          : "bg-gradient-to-r from-red-500/20 to-purple-500/20 border-red-500/50"
-      }
-    );
-
-    // Show modal toast with stats
-    uiToast({
-      title: isWinner ? "🎮 Victory!" : "💀 Defeat",
-      description: (
-        <div className="space-y-2">
-          <p>{isWinner ? "You've proven your worth!" : "You've been eliminated..."}</p>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className="text-center p-2 bg-black/20 rounded">
-              <div className="text-sm text-muted-foreground">Wins</div>
-              <div className="text-lg font-bold">{currentPlayer?.wins || 0}</div>
-            </div>
-            <div className="text-center p-2 bg-black/20 rounded">
-              <div className="text-sm text-muted-foreground">Losses</div>
-              <div className="text-lg font-bold">{currentPlayer?.losses || 0}</div>
-            </div>
-            <div className="text-center p-2 bg-black/20 rounded">
-              <div className="text-sm text-muted-foreground">Draws</div>
-              <div className="text-lg font-bold">{currentPlayer?.draws || 0}</div>
-            </div>
-          </div>
-        </div>
-      ),
-      className: "squid-game-toast",
-    });
-
-    // Navigate back to home after a delay
-    setTimeout(() => {
-      navigate('/');
-    }, 5000);
-  };
 
   const handleMove = async (position: number) => {
     try {
       const result = await gameService.makeMove(gameId, playerId, position, currentTurn);
       
       if (result.status === 'completed') {
-        showGameResult(result.winner);
+        showGameResult({ winner: result.winner, playerId, currentPlayer });
       } else if (result.status === 'rps_tiebreaker') {
         toast("It's a tie!", {
           description: "Time for Rock, Paper, Scissors! Squid Game style...",
@@ -111,7 +55,7 @@ const GameBoard = ({
       const result = await gameService.playRPS(gameId, playerId, choice);
       
       if (result.status === 'completed') {
-        showGameResult(result.winner);
+        showGameResult({ winner: result.winner, playerId, currentPlayer });
       }
       return result;
     } catch (error) {
@@ -120,57 +64,15 @@ const GameBoard = ({
     }
   };
 
-  const getPlayerStats = (player: any) => {
-    if (!player) return { wins: 0, losses: 0, draws: 0, ratio: '0%' };
-    const total = player.wins + player.losses;
-    const ratio = total > 0 ? Math.round((player.wins / total) * 100) : 0;
-    return {
-      wins: player.wins,
-      losses: player.losses,
-      draws: player.draws,
-      ratio: `${ratio}%`
-    };
-  };
-
-  const playerImage = currentPlayerSymbol === 'X' 
-    ? "/lovable-uploads/d1b808b8-eee4-46ca-9eed-2716706fb7a0.png"
-    : "/lovable-uploads/302a852d-9e1b-444e-817f-c4395f8e9379.png";
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Badge variant="outline" className="text-lg">
-          Match {currentTurn}/3
-        </Badge>
-        <div className="flex items-center gap-4">
-          <div className="flex gap-2">
-            {turnsHistory.map((turn, index) => (
-              <Badge 
-                key={index} 
-                variant={turn.winner === playerId ? "default" : turn.winner === 'draw' ? "secondary" : "destructive"}
-              >
-                {turn.winner === playerId 
-                  ? `Won (${currentPlayer?.name})` 
-                  : turn.winner === 'draw' 
-                    ? 'Draw' 
-                    : `Lost (${opponent?.name})`}
-              </Badge>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 bg-black/20 p-2 rounded-lg">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={playerImage} alt={currentPlayer?.name} />
-              <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-            </Avatar>
-            <div className="text-sm">
-              <div className="font-medium">{currentPlayer?.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {getPlayerStats(currentPlayer).wins}W {getPlayerStats(currentPlayer).losses}L ({getPlayerStats(currentPlayer).ratio})
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <GameStats
+        currentTurn={currentTurn}
+        turnsHistory={turnsHistory}
+        currentPlayer={currentPlayer}
+        opponent={opponent}
+        playerId={playerId}
+      />
 
       {gameStatus === 'rps_tiebreaker' ? (
         <RPSGame
