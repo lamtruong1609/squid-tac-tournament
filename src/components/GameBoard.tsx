@@ -3,12 +3,13 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { gameService } from '@/services/game/gameService';
 import { Badge } from './ui/badge';
-import { User } from 'lucide-react';
+import { User, Trophy, Skull } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import RPSGame from './RPSGame';
 import { RPSChoice } from '@/services/game/types';
+import { toast } from 'sonner';
 
 interface GameBoardProps {
   gameId: string;
@@ -33,11 +34,91 @@ const GameBoard = ({
   players,
   currentPlayerSymbol
 }: GameBoardProps) => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   const currentPlayer = players?.find(p => p.id === playerId);
   const opponent = players?.find(p => p.id !== playerId);
+
+  const showGameResult = (winner: string | null) => {
+    const isWinner = winner === playerId;
+    
+    // Show animated toast notification
+    toast(
+      isWinner ? "Victory! 🎮" : "Game Over! 💀",
+      {
+        description: isWinner 
+          ? "Congratulations! You've won the game!" 
+          : "Better luck next time!",
+        icon: isWinner ? <Trophy className="h-5 w-5 text-yellow-500" /> : <Skull className="h-5 w-5 text-red-500" />,
+        duration: 5000,
+        className: isWinner 
+          ? "bg-gradient-to-r from-yellow-500/20 to-pink-500/20 border-yellow-500/50" 
+          : "bg-gradient-to-r from-red-500/20 to-purple-500/20 border-red-500/50"
+      }
+    );
+
+    // Show modal toast with stats
+    uiToast({
+      title: isWinner ? "🎮 Victory!" : "💀 Defeat",
+      description: (
+        <div className="space-y-2">
+          <p>{isWinner ? "You've proven your worth!" : "You've been eliminated..."}</p>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="text-center p-2 bg-black/20 rounded">
+              <div className="text-sm text-muted-foreground">Wins</div>
+              <div className="text-lg font-bold">{currentPlayer?.wins || 0}</div>
+            </div>
+            <div className="text-center p-2 bg-black/20 rounded">
+              <div className="text-sm text-muted-foreground">Losses</div>
+              <div className="text-lg font-bold">{currentPlayer?.losses || 0}</div>
+            </div>
+            <div className="text-center p-2 bg-black/20 rounded">
+              <div className="text-sm text-muted-foreground">Draws</div>
+              <div className="text-lg font-bold">{currentPlayer?.draws || 0}</div>
+            </div>
+          </div>
+        </div>
+      ),
+      className: "squid-game-toast",
+    });
+
+    // Navigate back to home after a delay
+    setTimeout(() => {
+      navigate('/');
+    }, 5000);
+  };
+
+  const handleMove = async (position: number) => {
+    try {
+      const result = await gameService.makeMove(gameId, playerId, position, currentTurn);
+      
+      if (result.status === 'completed') {
+        showGameResult(result.winner);
+      } else if (result.status === 'rps_tiebreaker') {
+        toast("It's a tie!", {
+          description: "Time for Rock, Paper, Scissors! Squid Game style...",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to make move");
+    }
+  };
+
+  const handleRPSChoice = async (choice: RPSChoice) => {
+    try {
+      const result = await gameService.playRPS(gameId, playerId, choice);
+      
+      if (result.status === 'completed') {
+        showGameResult(result.winner);
+      }
+      return result;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to make choice");
+      throw error;
+    }
+  };
 
   const getPlayerStats = (player: any) => {
     if (!player) return { wins: 0, losses: 0, draws: 0, ratio: '0%' };
@@ -49,67 +130,6 @@ const GameBoard = ({
       draws: player.draws,
       ratio: `${ratio}%`
     };
-  };
-
-  const handleMove = async (position: number) => {
-    try {
-      const result = await gameService.makeMove(gameId, playerId, position, currentTurn);
-      
-      if (result.status === 'completed') {
-        toast({
-          title: result.winner === playerId ? `You won!` : `${opponent?.name || 'Opponent'} won!`,
-          description: "Game Over",
-        });
-        
-        setTimeout(() => {
-          if (result.winner === playerId) {
-            navigate('/winner');
-          } else {
-            navigate('/loser');
-          }
-        }, 1500);
-      } else if (result.status === 'rps_tiebreaker') {
-        toast({
-          title: "It's a tie!",
-          description: "Time for Rock, Paper, Scissors! Squid Game style...",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to make move",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRPSChoice = async (choice: RPSChoice) => {
-    try {
-      const result = await gameService.playRPS(gameId, playerId, choice);
-      
-      if (result.status === 'completed') {
-        toast({
-          title: result.winner === playerId ? `You won!` : `${opponent?.name || 'Opponent'} won!`,
-          description: "Game Over",
-        });
-        
-        setTimeout(() => {
-          if (result.winner === playerId) {
-            navigate('/winner');
-          } else {
-            navigate('/loser');
-          }
-        }, 1500);
-      }
-      return result;
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to make choice",
-        variant: "destructive",
-      });
-      throw error;
-    }
   };
 
   const playerImage = currentPlayerSymbol === 'X' 

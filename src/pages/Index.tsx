@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlayerRegistrationForm } from "@/components/tournament/PlayerRegistrationForm";
 import { ActiveTournaments } from "@/components/tournament/ActiveTournaments";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -9,10 +9,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Twitter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(authService.isLoggedIn());
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const loggedIn = authService.isLoggedIn();
+      setIsLoggedIn(loggedIn);
+    };
+
+    checkAuth();
+    // Check auth status when the window regains focus
+    window.addEventListener('focus', checkAuth);
+    return () => window.removeEventListener('focus', checkAuth);
+  }, []);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -22,18 +36,16 @@ const Index = () => {
     });
   };
 
-  if (isLoggedIn) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <PlayerTournaments />
-          <ActiveTournaments />
-        </div>
-      </div>
-    );
-  }
+  // ... keep existing code (render methods)
 
-  return (
+  return isLoggedIn ? (
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <PlayerTournaments />
+        <ActiveTournaments />
+      </div>
+    </div>
+  ) : (
     <div className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden">
       <div className="w-full">
         <img 

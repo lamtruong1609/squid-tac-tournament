@@ -2,15 +2,24 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WagmiConfig } from 'wagmi';
 import { config } from './lib/web3Config';
 import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Game from "./pages/Game";
+import { authService } from "./services/authService";
 
 const queryClient = new QueryClient();
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isLoggedIn = authService.isLoggedIn();
+  if (!isLoggedIn) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
 
 const App = () => {
   return (
@@ -22,7 +31,14 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/game/:gameId" element={<Game />} />
+              <Route 
+                path="/game/:gameId" 
+                element={
+                  <ProtectedRoute>
+                    <Game />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
             <Toaster />
             <Sonner />
