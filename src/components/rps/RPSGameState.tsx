@@ -36,20 +36,20 @@ export const RPSGameState = ({ gameId, playerId, onGameStateUpdate }: RPSGameSta
                 // Update game state with current choices
                 onGameStateUpdate(currentRound);
 
-                // Check if both players have made their choices and game is completed
-                const bothPlayersChosen = currentRound[playerId] && Object.keys(currentRound).find(key => 
-                  key !== playerId && key !== 'winner' && currentRound[key]
+                // Check if both players have made their choices
+                const opponentId = Object.keys(currentRound).find(key => 
+                  key !== playerId && key !== 'winner'
                 );
 
-                if (newData.status === 'completed' && bothPlayersChosen) {
-                  const opponentId = Object.keys(currentRound).find(key => 
-                    key !== playerId && key !== 'winner'
-                  );
-                  
+                const bothPlayersChosen = opponentId && currentRound[playerId] && currentRound[opponentId];
+
+                // Only process winner when both players have chosen and game is completed
+                if (bothPlayersChosen && newData.status === 'completed' && currentRound.winner) {
                   const isWinner = currentRound.winner === playerId;
                   const playerChoice = currentRound[playerId];
-                  const opponentChoice = opponentId ? currentRound[opponentId] : '';
+                  const opponentChoice = currentRound[opponentId];
 
+                  // Show result toast
                   toast({
                     title: isWinner ? "You won the Final Tiebreaker!" : "Opponent won the Final Tiebreaker!",
                     description: `Final Result: ${playerChoice} vs ${opponentChoice}`,

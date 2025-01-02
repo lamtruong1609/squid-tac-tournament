@@ -23,15 +23,14 @@ const RPSResult = ({ selectedChoice, roundResult, isWaitingForOpponent, opponent
     const opponentChoice = roundResult.choices[opponentId];
     
     // Show final result when both players have chosen and there's a winner
-    if (roundResult.choices[playerId] && roundResult.choices[opponentId] && roundResult.winner) {
+    if (roundResult.choices[playerId] && roundResult.choices[opponentId]) {
       if (roundResult.winner === playerId) {
         return `You won the Final Tiebreaker! (${selectedChoice} beats ${opponentChoice})`;
       } else if (roundResult.winner === opponentId) {
         return `Opponent won the Final Tiebreaker! (${opponentChoice} beats ${selectedChoice})`;
-      } else if (roundResult.winner === 'draw') {
-        return "It's a draw! Player X wins the Final Tiebreaker!";
+      } else {
+        return "Determining the winner...";
       }
-      return `Both players chose ${selectedChoice}! Player X wins the Final Tiebreaker!`;
     }
     
     return "Determining the winner...";
