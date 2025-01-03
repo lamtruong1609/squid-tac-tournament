@@ -4,12 +4,37 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { authService } from "@/services/authService"
 import { useNavigate } from "react-router-dom"
+import React, { useState, useEffect, FC, useMemo } from "react";
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
+import {
+  WalletModalProvider,
+  WalletMultiButton
+} from '@solana/wallet-adapter-react-ui';
+import { clusterApiUrl } from '@solana/web3.js';
+
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 export const Web3LoginButton = () => {
   const navigate = useNavigate()
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
+
+
+  const network = WalletAdapterNetwork.Mainnet;
+
+  // You can also provide a custom RPC endpoint.
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+
+  const wallets = useMemo(
+      () => [
+        new UnsafeBurnerWalletAdapter(),
+      ],
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [network]
+  );
 
   const handleLogin = async () => {
     try {
@@ -48,17 +73,27 @@ export const Web3LoginButton = () => {
   }
 
   return (
-    <Button 
-      onClick={() => {
-        if (isConnected) {
-          handleLogin()
-        } else {
-          connect({ connector: connectors[0] })
-        }
-      }}
-      className="w-full"
-    >
-      {isConnected ? 'Continue with Wallet' : 'Connect Wallet'}
-    </Button>
+   <div>
+     {isConnected ? <ConnectionProvider endpoint={endpoint}>
+       <WalletProvider wallets={wallets} autoConnect>
+         <WalletModalProvider>
+           <WalletMultiButton />
+         </WalletModalProvider>
+       </WalletProvider>
+     </ConnectionProvider> : 'Connect Wallet'}
+   </div>
+
+  // <Button
+  //     onClick={() => {
+  //       if (isConnected) {
+  //         handleLogin()
+  //       } else {
+  //         connect({ connector: connectors[0] })
+  //       }
+  //     }}
+  //     className="w-full"
+  // >
+  //   {isConnected ? 'Continue with Wallet' : 'Connect Wallet'}
+  // </Button>
   )
 }

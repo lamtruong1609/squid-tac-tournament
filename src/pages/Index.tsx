@@ -83,18 +83,18 @@ const Index = () => {
                 </div>
               </div>
 
-              <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
-                </TabsList>
-                <TabsContent value="login">
-                  <LoginForm onSuccess={() => setIsLoggedIn(true)} />
-                </TabsContent>
-                <TabsContent value="register">
-                  <PlayerRegistrationForm />
-                </TabsContent>
-              </Tabs>
+              {/*<Tabs defaultValue="login" className="w-full">*/}
+              {/*  <TabsList className="grid w-full grid-cols-2">*/}
+              {/*    <TabsTrigger value="login">Login</TabsTrigger>*/}
+              {/*    <TabsTrigger value="register">Register</TabsTrigger>*/}
+              {/*  </TabsList>*/}
+              {/*  <TabsContent value="login">*/}
+              {/*    <LoginForm onSuccess={() => setIsLoggedIn(true)} />*/}
+              {/*  </TabsContent>*/}
+              {/*  <TabsContent value="register">*/}
+              {/*    <PlayerRegistrationForm />*/}
+              {/*  </TabsContent>*/}
+              {/*</Tabs>*/}
             </div>
           </div>
         </div>
